@@ -129,6 +129,45 @@ class PilotTests(TestCase):
         res_hist = self.client.get(f'/jugadores/{self.player.pk}/')
         self.assertContains(res_hist, 'seguimiento/js/history.js')
 
+    def test_supabase_storage_backend(self):
+        import urllib.error
+        from unittest.mock import MagicMock, patch
+        from django.core.files.base import ContentFile
+        from .storage import SupabaseStorage
+
+        storage = SupabaseStorage(base_url='https://demo.supabase.co', service_key='secret-key', bucket='privado')
+        uploaded = {}
+
+        def fake_urlopen(req, timeout=20):
+            method = req.get_method()
+            if method == 'HEAD':
+                if req.full_url in uploaded:
+                    resp = MagicMock()
+                    resp.status = 200
+                    resp.__enter__.return_value = resp
+                    return resp
+                raise urllib.error.HTTPError(req.full_url, 404, 'Not Found', {}, None)
+            if method == 'POST':
+                uploaded[req.full_url.replace('/object/', '/object/authenticated/')] = req.data
+            resp = MagicMock()
+            resp.status = 200
+            resp.read.return_value = uploaded.get(req.full_url, b'')
+            resp.__enter__.return_value = resp
+            return resp
+
+        with patch('urllib.request.urlopen', side_effect=fake_urlopen):
+            saved = storage.save('justificativos/test.pdf', ContentFile(b'%PDF-1.4\n%%EOF'))
+            self.assertEqual(saved, 'justificativos/test.pdf')
+            self.assertTrue(storage.exists('justificativos/test.pdf'))
+
+            opened = storage.open('justificativos/test.pdf', 'rb')
+            self.assertEqual(opened.read(), b'%PDF-1.4\n%%EOF')
+
+            storage.delete('justificativos/test.pdf')
+
+        with self.assertRaises(NotImplementedError):
+            storage.url('justificativos/test.pdf')
+
     def test_demo_is_repeatable_and_preserves_edits(self):
         from django.core.management import call_command
         from io import StringIO
