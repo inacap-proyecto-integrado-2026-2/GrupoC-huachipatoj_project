@@ -1,9 +1,11 @@
 import json
+import re
 import tempfile
 from django.test import TestCase, override_settings
 from django.contrib.auth.models import User
 from django.core.files.uploadedfile import SimpleUploadedFile
-from .models import Jugador, ClaseEntrenamiento, Evaluacion, Equipo, Prestamo, Rutina, Justificativo, Autorizacion
+from django.utils import timezone
+from .models import Jugador, ClaseEntrenamiento, Evaluacion, Equipo, Prestamo, Rutina, Justificativo, Auditoria, Autorizacion
 
 
 class PilotTests(TestCase):
@@ -130,6 +132,9 @@ class PilotTests(TestCase):
         self.assertNotContains(res_home, '<style>')
         res_pista = self.client.get('/pista/')
         self.assertContains(res_pista, 'seguimiento/js/pista.js')
+        self.assertContains(res_pista, 'data-pista-filter')
+        self.assertContains(res_pista, 'data-pista-progress')
+        self.assertContains(res_pista, 'data-mark-all-present')
         self.assertNotContains(res_pista, '<style>')
         res_hist = self.client.get(f'/jugadores/{self.player.pk}/')
         self.assertContains(res_hist, 'seguimiento/js/history.js')
@@ -204,3 +209,192 @@ class PilotTests(TestCase):
             self.assertEqual(counts, [m.objects.count() for m in [Jugador, ClaseEntrenamiento, Evaluacion, Rutina, Equipo, Prestamo, Justificativo]])
             p.refresh_from_db()
             self.assertEqual(p.observaciones, 'Cambio del entrenador')
+
+    def test_player_portal_account_and_rut_login(self):
+        data = {
+            'rut': '11.111.112-K',
+            'nombre_completo': 'Lucas Silva',
+            'categoria': 'ESC',
+            'fecha_nacimiento': '2015-03-10',
+            'contacto_emergencia': '987654321',
+            'observaciones': 'Inicio',
+            'crear_cuenta': 'on',
+        }
+        res = self.client.post('/agregar/', data, follow=True)
+        self.assertEqual(res.status_code, 200)
+        player = Jugador.objects.get(rut='11.111.112-K')
+        portal_user = User.objects.get(username='11.111.112-K')
+        self.assertFalse(portal_user.is_staff)
+
+        msg_text = ' '.join(str(m) for m in res.context['messages'])
+        match = re.search(r'Contraseña temporal:\s*(\S+)', msg_text)
+        self.assertIsNotNone(match)
+        temp_password = match.group(1)
+
+        # La clave temporal no debe quedar guardada en el registro de auditoría
+        self.assertFalse(Auditoria.objects.filter(accion__icontains=temp_password).exists())
+
+        self.client.logout()
+        # Ingreso flexible sin puntos ni guión en minúscula
+        login_res = self.client.post('/accounts/login/', {'username': '11111112k', 'password': temp_password})
+        self.assertEqual(login_res.status_code, 302)
+        self.assertEqual(int(self.client.session['_auth_user_id']), portal_user.pk)
+
+        # Restricción: un alumno no puede acceder al reset ni crear accesos
+        self.assertEqual(self.client.post(f'/jugadores/{player.pk}/acceso/').status_code, 403)
+
+        self.client.force_login(self.coach)
+        self.assertEqual(self.client.get(f'/jugadores/{player.pk}/acceso/').status_code, 405)
+        reset_res = self.client.post(f'/jugadores/{player.pk}/acceso/', follow=True)
+        self.assertEqual(reset_res.status_code, 200)
+        reset_msg = ' '.join(str(m) for m in reset_res.context['messages'])
+        match2 = re.search(r'Contraseña temporal:\s*(\S+)', reset_msg)
+        self.assertIsNotNone(match2)
+        new_password = match2.group(1)
+        self.assertNotEqual(new_password, temp_password)
+
+        self.client.logout()
+        self.assertEqual(
+            self.client.post('/accounts/login/', {'username': '11.111.112-K', 'password': new_password}).status_code,
+            302,
+        )
+
+    def test_password_change_flow(self):
+        self.client.force_login(self.student)
+        page = self.client.get('/accounts/password_change/')
+        self.assertEqual(page.status_code, 200)
+        self.assertContains(page, 'Cambiar contraseña')
+        self.assertContains(page, 'seguimiento/css/styles.css')
+        self.assertNotContains(page, 'Django administration')
+
+        res = self.client.post(
+            '/accounts/password_change/',
+            {'old_password': 'test-pass', 'new_password1': 'HuaCh1pato#2026', 'new_password2': 'HuaCh1pato#2026'},
+            follow=True,
+        )
+        self.assertEqual(res.status_code, 200)
+        self.assertContains(res, 'Contraseña actualizada')
+        self.student.refresh_from_db()
+        self.assertTrue(self.student.check_password('HuaCh1pato#2026'))
+
+    def test_student_portal_chart_routines_and_justificativo(self):
+        other_player = Jugador.objects.create(
+            rut='999', nombre_completo='Otro Deportista', categoria='ESC', fecha_nacimiento='2014-05-05', contacto_emergencia='555'
+        )
+        s2 = ClaseEntrenamiento.objects.create(fecha=timezone.localdate())
+        Evaluacion.objects.create(
+            jugador=self.player,
+            clase=self.session,
+            asistencia='P',
+            nota_frenado=8,
+            nota_pase=7,
+            nota_tiro=9,
+            observacion_privada='PRIVADA_NO_ALUMNO',
+        )
+        eval_abs = Evaluacion.objects.create(jugador=self.player, clase=s2, asistencia='A')
+        eval_other_abs = Evaluacion.objects.create(jugador=other_player, clase=s2, asistencia='A')
+
+        r_own = Rutina.objects.create(
+            jugador=self.player, titulo='Control bocha', objetivo='Dominio', ejercicios='3x10 min', fecha=timezone.localdate()
+        )
+        r_other = Rutina.objects.create(
+            jugador=other_player, titulo='Rutina ajena', objetivo='Velocidad', ejercicios='Sprints', fecha=timezone.localdate()
+        )
+
+        self.client.force_login(self.student)
+        home_res = self.client.get('/')
+        self.assertEqual(home_res.status_code, 200)
+        self.assertContains(home_res, 'seguimiento/js/history.js')
+        self.assertContains(home_res, 'chart-data')
+        self.assertNotContains(home_res, 'PRIVADA_NO_ALUMNO')
+        self.assertNotContains(home_res, '<style>')
+
+        # Completar rutina propia y bloqueo sobre rutina ajena
+        self.assertEqual(self.client.post(f'/rutinas/{r_other.pk}/completar/').status_code, 404)
+        r_other.refresh_from_db()
+        self.assertFalse(r_other.completada)
+
+        self.assertEqual(self.client.post(f'/rutinas/{r_own.pk}/completar/').status_code, 302)
+        r_own.refresh_from_db()
+        self.assertTrue(r_own.completada)
+
+        # Justificativo del alumno: aislamiento estricto y estado forzado a pendiente
+        with tempfile.TemporaryDirectory() as tmp, override_settings(MEDIA_ROOT=tmp):
+            form_res = self.client.get('/mi-justificativo/')
+            self.assertEqual(form_res.status_code, 200)
+            self.assertNotContains(form_res, 'Otro Deportista')
+
+            pdf = SimpleUploadedFile('cert.pdf', b'%PDF-1.4\n%%EOF', content_type='application/pdf')
+            bad_post = self.client.post('/mi-justificativo/', {'evaluacion': eval_other_abs.pk, 'motivo': 'Intento ajeno', 'archivo': pdf})
+            self.assertEqual(bad_post.status_code, 200)
+            self.assertFalse(Justificativo.objects.exists())
+
+            pdf2 = SimpleUploadedFile('cert2.pdf', b'%PDF-1.4\n%%EOF', content_type='application/pdf')
+            ok_post = self.client.post(
+                '/mi-justificativo/',
+                {'evaluacion': eval_abs.pk, 'motivo': 'Reposo médico', 'archivo': pdf2, 'estado': 'aprobado'},
+            )
+            self.assertEqual(ok_post.status_code, 302)
+            doc = Justificativo.objects.get()
+            self.assertEqual(doc.estado, 'pendiente')
+            self.assertContains(self.client.get('/'), 'Reposo médico')
+
+    def test_filters_csv_exports_and_audit_log(self):
+        p_esc = Jugador.objects.create(
+            rut='=1+1', nombre_completo='=Malicioso Formula', categoria='ESC', fecha_nacimiento='2016-01-01', contacto_emergencia='111'
+        )
+        Evaluacion.objects.create(
+            jugador=self.player,
+            clase=self.session,
+            categoria_registrada='S15',
+            asistencia='P',
+            nota_frenado=8,
+            nota_pase=6,
+            nota_tiro=7,
+            observacion_privada='SECRETO_CSV',
+        )
+        Rutina.objects.create(jugador=self.player, titulo='Pendiente S15', objetivo='Pase', ejercicios='2x10', fecha=timezone.localdate(), completada=False)
+        Rutina.objects.create(jugador=p_esc, titulo='Lista ESC', objetivo='Giro', ejercicios='2x10', fecha=timezone.localdate(), completada=True)
+
+        with tempfile.TemporaryDirectory() as tmp, override_settings(MEDIA_ROOT=tmp):
+            pdf = SimpleUploadedFile('auth.pdf', b'%PDF-1.4\n%%EOF', content_type='application/pdf')
+            Autorizacion.objects.create(jugador=self.player, apoderado='Ana Prueba', fecha=timezone.localdate(), responsable='Coach', estado='vigente', archivo=pdf)
+
+        # Filtros en listados
+        res_players = self.client.get('/jugadores/', {'categoria': 'ESC'})
+        self.assertContains(res_players, '=Malicioso Formula')
+        self.assertNotContains(res_players, 'Jugador prueba')
+
+        res_routines = self.client.get('/rutinas/', {'estado': 'completadas', 'categoria': 'ESC'})
+        self.assertContains(res_routines, 'Lista ESC')
+        self.assertNotContains(res_routines, 'Pendiente S15')
+
+        res_auths = self.client.get('/autorizaciones/', {'estado': 'vigente', 'q': 'Ana'})
+        self.assertContains(res_auths, 'Ana Prueba')
+
+        # Exportación CSV de nómina con protección contra inyección de fórmulas y BOM UTF-8
+        csv_players = self.client.get('/jugadores/exportar/', {'categoria': 'ESC'})
+        self.assertEqual(csv_players.status_code, 200)
+        self.assertTrue(csv_players['Content-Type'].startswith('text/csv'))
+        body_players = csv_players.content.decode('utf-8-sig')
+        self.assertIn("'=1+1", body_players)
+        self.assertIn("'=Malicioso Formula", body_players)
+        self.assertNotIn('Jugador prueba', body_players)
+
+        # Exportación CSV mensual sin observaciones privadas
+        csv_month = self.client.get('/reportes/', {'mes': timezone.localdate().strftime('%Y-%m'), 'jugador': self.player.pk, 'formato': 'csv'})
+        self.assertEqual(csv_month.status_code, 200)
+        self.assertTrue(csv_month['Content-Type'].startswith('text/csv'))
+        body_month = csv_month.content.decode('utf-8-sig')
+        self.assertIn('Jugador prueba', body_month)
+        self.assertNotIn('SECRETO_CSV', body_month)
+
+        # Auditoría
+        audit_res = self.client.get('/auditoria/', {'q': 'Exportó'})
+        self.assertEqual(audit_res.status_code, 200)
+        self.assertContains(audit_res, 'Exportó')
+
+        # Permisos: alumno bloqueado en CSV y auditoría
+        self.client.force_login(self.student)
+        self.assertEqual(self.client.get('/jugadores/exportar/').status_code, 403)
+        self.assertEqual(self.client.get('/auditoria/').status_code, 403)

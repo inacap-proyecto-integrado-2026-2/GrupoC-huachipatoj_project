@@ -11,6 +11,28 @@
     </div>
   </div>
 
+  <div class="card">
+    <form class="toolbar" method="get">
+      <label>
+        Buscar
+        <input name="q" value="{{ q }}" placeholder="Jugador, RUT o motivo" aria-label="Buscar justificativo">
+      </label>
+      <label>
+        Estado
+        <select name="estado" aria-label="Estado del justificativo">
+          <option value="">Todos los estados</option>
+          {% for code, label in estados %}
+            <option value="{{ code }}" {% if estado == code %}selected{% endif %}>{{ label }}</option>
+          {% endfor %}
+        </select>
+      </label>
+      <button type="submit">Filtrar</button>
+      {% if q or estado %}
+        <a class="button button-secondary" href="{% url 'justificativos' %}">Limpiar</a>
+      {% endif %}
+    </form>
+  </div>
+
   <div class="card table-wrap">
     <table>
       <thead>
@@ -49,7 +71,7 @@
           </tr>
         {% empty %}
           <tr>
-            <td colspan="4" class="empty">Sin justificativos. Primero registra una ausencia o atraso en una sesión.</td>
+            <td colspan="4" class="empty">Sin justificativos que coincidan.</td>
           </tr>
         {% endfor %}
       </tbody>

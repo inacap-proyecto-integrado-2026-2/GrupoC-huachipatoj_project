@@ -9,6 +9,13 @@
     </div>
     <div class="quick-actions">
       <a class="button button-secondary" href="{% url 'editar_jugador' player.pk %}">Editar ficha</a>
+      <form class="inline" method="post" action="{% url 'acceso_jugador' player.pk %}">
+        {% csrf_token %}
+        <input type="hidden" name="next" value="historial">
+        <button type="submit" class="button-secondary">
+          {% if tiene_cuenta %}Restablecer clave portal{% else %}Crear acceso portal{% endif %}
+        </button>
+      </form>
       <a class="button button-secondary" href="{% url 'jugadores' %}">Volver a plantilla</a>
     </div>
   </div>

@@ -1,4 +1,5 @@
 {% extends 'seguimiento/base.html' %}
+{% load static %}
 
 {% block content %}
   <div class="page-header">
@@ -6,14 +7,88 @@
       <h1>Mi rendimiento</h1>
       <p class="muted">{{ player.nombre_completo|default:'Cuenta sin jugador asociado' }}{% if player %} · {{ player.get_categoria_display }}{% endif %}</p>
     </div>
+    {% if player %}
+      <div class="quick-actions">
+        <a class="button {% if not has_pending_evals %}button-secondary{% endif %}" href="{% url 'mi_justificativo' %}">+ Enviar justificativo</a>
+      </div>
+    {% endif %}
   </div>
 
   {% if player.observaciones %}
     <div class="notice">{{ player.observaciones }}</div>
   {% endif %}
 
+  {% if player %}
+    <section class="kpi-grid" aria-label="Resumen personal">
+      <div class="kpi-card">
+        <div class="kpi-top">
+          <span class="kpi-label">Asistencias registradas</span>
+        </div>
+        <div class="kpi-value">{{ stat_presentes }}</div>
+        <div class="kpi-meta">De {{ stat_evaluaciones }} evaluaciones registradas</div>
+      </div>
+
+      <div class="kpi-card">
+        <div class="kpi-top">
+          <span class="kpi-label">Promedio habilidades</span>
+        </div>
+        <div class="kpi-value">{% if stat_promedio %}{{ stat_promedio }}{% else %}—{% endif %}</div>
+        <div class="kpi-meta">Escala 1 a 10 en clases realizadas</div>
+      </div>
+
+      <div class="kpi-card">
+        <div class="kpi-top">
+          <span class="kpi-label">Rutinas asignadas</span>
+        </div>
+        <div class="kpi-value">{{ stat_rutinas_pendientes }} <small class="muted">pendientes</small></div>
+        <div class="kpi-meta">{{ stat_rutinas_completadas }} completadas</div>
+      </div>
+    </section>
+
+    <div class="card">
+      <div class="card-header">
+        <h2>Mi evolución técnica</h2>
+        <small>Frenado (azul) · Pase (verde) · Tiro (ámbar) · Escala 1–10</small>
+      </div>
+      <canvas id="chart" role="img" aria-label="Evolución personal de notas"></canvas>
+      <p id="chart-empty" class="muted"></p>
+    </div>
+    {{ chart|json_script:'chart-data' }}
+  {% endif %}
+
+  <h2>Mis evaluaciones</h2>
   {% include 'seguimiento/evaluations_list.html' %}
 
   <h2>Mis rutinas</h2>
   {% include 'seguimiento/routines_list.html' %}
+
+  {% if justificativos %}
+    <h2>Mis justificativos enviados</h2>
+    <div class="card table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Entrenamiento</th>
+            <th>Motivo</th>
+            <th>Estado</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for j in justificativos %}
+            <tr>
+              <td>{{ j.evaluacion.clase.fecha }} · sesión #{{ j.evaluacion.clase_id }}</td>
+              <td>{{ j.motivo }}</td>
+              <td><span class="badge badge-{{ j.estado }}">{{ j.get_estado_display }}</span></td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  {% endif %}
+{% endblock %}
+
+{% block scripts %}
+  {% if player %}
+    <script src="{% static 'seguimiento/js/history.js' %}" defer></script>
+  {% endif %}
 {% endblock %}

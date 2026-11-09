@@ -11,6 +11,28 @@
     </div>
   </div>
 
+  <div class="card">
+    <form class="toolbar" method="get">
+      <label>
+        Buscar
+        <input name="q" value="{{ q }}" placeholder="Jugador, RUT o apoderado" aria-label="Buscar autorización">
+      </label>
+      <label>
+        Estado
+        <select name="estado" aria-label="Estado de autorización">
+          <option value="">Todos los estados</option>
+          {% for code, label in estados %}
+            <option value="{{ code }}" {% if estado == code %}selected{% endif %}>{{ label }}</option>
+          {% endfor %}
+        </select>
+      </label>
+      <button type="submit">Filtrar</button>
+      {% if q or estado %}
+        <a class="button button-secondary" href="{% url 'autorizaciones' %}">Limpiar</a>
+      {% endif %}
+    </form>
+  </div>
+
   <div class="cards-grid">
     {% for a in autorizaciones %}
       <article class="card">
@@ -25,7 +47,7 @@
         </div>
       </article>
     {% empty %}
-      <div class="card empty">Sin autorizaciones registradas.</div>
+      <div class="card empty">Sin autorizaciones registradas para este filtro.</div>
     {% endfor %}
   </div>
 {% endblock %}

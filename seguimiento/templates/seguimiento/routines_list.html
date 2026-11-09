@@ -17,6 +17,13 @@
         <div class="form-actions">
           <a class="button button-secondary button-sm" href="{% url 'editar_rutina' r.pk %}">Editar / registrar cumplimiento</a>
         </div>
+      {% elif not r.completada %}
+        <div class="form-actions">
+          <form class="inline" method="post" action="{% url 'completar_rutina' r.pk %}">
+            {% csrf_token %}
+            <button type="submit" class="button button-success button-sm">Marcar completada</button>
+          </form>
+        </div>
       {% endif %}
     </article>
   {% empty %}

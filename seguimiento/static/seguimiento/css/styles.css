@@ -290,6 +290,12 @@ small,
   color: var(--muted);
 }
 
+.sidebar-footer-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
 .sidebar-logout {
   width: 100%;
   justify-content: center;
@@ -510,6 +516,13 @@ form.toolbar {
   margin-bottom: 16px;
 }
 
+.notice-info {
+  background: var(--info-bg);
+  border-color: var(--info-border);
+  border-left-color: var(--primary);
+  color: var(--text);
+}
+
 .notice-warning {
   background: var(--warning-bg);
   border-color: var(--warning-border);
@@ -522,6 +535,13 @@ form.toolbar {
   border-color: var(--success-border);
   border-left-color: #16a34a;
   color: #14532d;
+}
+
+.notice-error {
+  background: var(--danger-bg);
+  border-color: var(--danger-border);
+  border-left-color: #dc2626;
+  color: var(--danger-text);
 }
 
 /* 5. Dashboard: KPIs, grillas, listas y barras de progreso */
@@ -915,6 +935,37 @@ label {
 .edit input:not([type="checkbox"]),
 .edit select {
   width: 100%;
+}
+
+input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  vertical-align: middle;
+  accent-color: var(--primary);
+  cursor: pointer;
+}
+
+.pista-tools {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-top: 14px;
+}
+
+.pista-tools input[type="search"] {
+  min-width: 240px;
+  flex: 1;
+  max-width: 360px;
+}
+
+.badge-group {
+  display: inline-flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  align-items: center;
 }
 
 .form-actions {

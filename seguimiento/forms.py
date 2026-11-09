@@ -55,6 +55,12 @@ class JugadorForm(forms.ModelForm):
             'autocomplete': 'off',
         }),
     )
+    crear_cuenta = forms.BooleanField(
+        required=False,
+        initial=True,
+        label='Crear cuenta de acceso para el deportista',
+        help_text='Genera un usuario con su RUT y contraseña temporal para entrar al portal.',
+    )
 
     class Meta:
         model = Jugador
@@ -84,6 +90,7 @@ class JugadorForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         if self.instance and self.instance.pk:
+            self.fields.pop('crear_cuenta', None)
             self.fields['rut'].widget.attrs['readonly'] = True
             self.fields['rut'].help_text = 'El RUT vincula la cuenta del jugador. No se puede cambiar en esta versión.'
 

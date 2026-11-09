@@ -1,5 +1,5 @@
 /* ==========================================================================
-   Evaluación en Pista — Guardado asíncrono on-click
+   Evaluación en Pista — Guardado asíncrono, filtro rápido y conteo en vivo
    ========================================================================== */
 
 (() => {
@@ -10,6 +10,12 @@
   const saveUrl = table.dataset.saveUrl;
   const token = csrfInput.value;
   const pending = new Set();
+  const rows = [...table.querySelectorAll('tr.player')];
+  const progressEl = document.querySelector('[data-pista-progress]');
+  const filterInput = document.querySelector('[data-pista-filter]');
+  const emptyFilterRow = table.querySelector('[data-pista-empty-filter]');
+  const markAllBtn = document.querySelector('[data-mark-all-present]');
+  const rowControllers = [];
 
   window.addEventListener('beforeunload', (event) => {
     if (pending.size) {
@@ -18,7 +24,35 @@
     }
   });
 
-  document.querySelectorAll('.player').forEach((row) => {
+  function updateProgress() {
+    if (!progressEl) return;
+    const evaluated = rows.filter((row) => {
+      const sel = row.querySelector('.attendance');
+      return sel && sel.value !== '';
+    }).length;
+    progressEl.textContent = `${evaluated} de ${rows.length}`;
+  }
+
+  function applyFilter() {
+    if (!filterInput) return;
+    const rawQuery = filterInput.value.trim().toLowerCase();
+    const compactQuery = rawQuery.replace(/[\s.\-]/g, '');
+    let visibleCount = 0;
+
+    rows.forEach((row) => {
+      const text = (row.dataset.search || '').toLowerCase();
+      const compactText = text.replace(/[\s.\-]/g, '');
+      const matches = !rawQuery || text.includes(rawQuery) || (compactQuery && compactText.includes(compactQuery));
+      row.hidden = !matches;
+      if (matches) visibleCount++;
+    });
+
+    if (emptyFilterRow) {
+      emptyFilterRow.hidden = !(rawQuery && visibleCount === 0);
+    }
+  }
+
+  rows.forEach((row) => {
     let busy = false;
     const attendance = row.querySelector('.attendance');
     const status = row.querySelector('.status');
@@ -42,7 +76,7 @@
     }
 
     async function save() {
-      if (busy) return;
+      if (busy) return false;
       busy = true;
       pending.add(row);
       paint();
@@ -77,13 +111,18 @@
 
         status.textContent = 'Guardado';
         const link = row.querySelector('.observation');
-        link.href = `/evaluaciones/${result.evaluacion}/observacion/`;
-        link.hidden = false;
+        if (link) {
+          link.href = `/evaluaciones/${result.evaluacion}/observacion/`;
+          link.hidden = false;
+        }
         pending.delete(row);
+        updateProgress();
+        return true;
       } catch (err) {
         status.textContent = 'No guardado. Reintenta.';
         status.classList.add('error');
         retry.hidden = false;
+        return false;
       } finally {
         busy = false;
         paint();
@@ -118,5 +157,37 @@
 
     retry.addEventListener('click', save);
     paint();
+
+    rowControllers.push({
+      row,
+      attendance,
+      isBusy: () => busy,
+      save,
+    });
   });
+
+  if (filterInput) {
+    filterInput.addEventListener('input', applyFilter);
+  }
+
+  if (markAllBtn) {
+    markAllBtn.addEventListener('click', async () => {
+      const targets = rowControllers.filter(
+        (ctrl) => !ctrl.row.hidden && ctrl.row.dataset.locked !== '1' && ctrl.attendance.value === '' && !ctrl.isBusy(),
+      );
+      if (!targets.length) return;
+      const originalText = markAllBtn.textContent;
+      markAllBtn.disabled = true;
+      markAllBtn.textContent = 'Marcando presentes…';
+      try {
+        for (const ctrl of targets) {
+          ctrl.attendance.value = 'P';
+          await ctrl.save();
+        }
+      } finally {
+        markAllBtn.disabled = false;
+        markAllBtn.textContent = originalText;
+      }
+    });
+  }
 })();

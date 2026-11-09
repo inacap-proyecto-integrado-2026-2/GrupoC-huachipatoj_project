@@ -1,14 +1,16 @@
 import calendar
+import csv
 from datetime import date, timedelta
 from django import forms
 from django.contrib import messages
 from django.db import transaction
+from django.db.models import Q
 from django.http import HttpResponse, FileResponse
 from django.shortcuts import render, redirect, get_object_or_404
 from django.urls import reverse
 from django.utils import timezone
 from .models import ClaseEntrenamiento, Evaluacion, Jugador, Autorizacion
-from .pilot_views import coach, log, DocumentForm
+from .pilot_views import coach, log, DocumentForm, _csv_safe
 
 
 class SessionForm(forms.ModelForm):
@@ -135,6 +137,7 @@ def observation(request, pk):
     if request.method == 'POST' and form.is_valid():
         form.save()
         log(request, f'Editó observación privada de evaluación {pk}')
+        messages.success(request, f'Observación privada guardada para {e.jugador.nombre_completo}.')
         return redirect(pista_url)
     return render(
         request,
@@ -170,8 +173,27 @@ class AuthorizationForm(forms.ModelForm):
 
 @coach
 def authorizations(request):
+    q = request.GET.get('q', '').strip()
+    estado = request.GET.get('estado', '').strip()
     rows = Autorizacion.objects.select_related('jugador').order_by('-fecha', '-id')
-    return render(request, 'seguimiento/authorizations.html', {'autorizaciones': rows})
+    if q:
+        rows = rows.filter(
+            Q(jugador__nombre_completo__icontains=q)
+            | Q(jugador__rut__icontains=q)
+            | Q(apoderado__icontains=q)
+        )
+    if estado in ('pendiente', 'vigente', 'revocada'):
+        rows = rows.filter(estado=estado)
+    return render(
+        request,
+        'seguimiento/authorizations.html',
+        {
+            'autorizaciones': rows,
+            'q': q,
+            'estado': estado,
+            'estados': Autorizacion._meta.get_field('estado').choices,
+        },
+    )
 
 
 @coach
@@ -186,6 +208,7 @@ def authorization_edit(request, pk=None):
     if request.method == 'POST' and form.is_valid():
         obj = form.save()
         log(request, f'Guardó autorización {obj.pk}: {obj.estado}')
+        messages.success(request, f'Autorización de {obj.jugador.nombre_completo} guardada ({obj.get_estado_display()}).')
         return redirect('autorizaciones')
     return render(
         request,
@@ -222,8 +245,34 @@ class ReportForm(forms.Form):
 def reports(request):
     form = ReportForm(request.GET if request.GET else None, initial={'mes': timezone.localdate().replace(day=1)})
     if request.GET and form.is_valid():
-        from .report_pdf import build_report
         data = form.cleaned_data
+        fmt = request.GET.get('formato', 'pdf').lower()
+        if fmt == 'csv':
+            from .report_pdf import report_data
+            rows, _, _ = report_data(data['mes'], data.get('jugador'), data.get('categoria'))
+            log(request, 'Exportó reporte mensual CSV ' + data['mes'].strftime('%Y-%m'))
+            response = HttpResponse(content_type='text/csv; charset=utf-8')
+            response['Content-Disposition'] = 'attachment; filename="Huachipato-' + data['mes'].strftime('%Y-%m') + '.csv"'
+            response['Cache-Control'] = 'private, no-store'
+            response.write('\ufeff')
+            writer = csv.writer(response)
+            writer.writerow(['Fecha', 'Clase ID', 'Estado clase', 'Categoría', 'Jugador', 'Asistencia', 'Frenado', 'Pase', 'Tiro'])
+            for e in rows:
+                scored = e.clase.estado == 'realizada' and e.asistencia in ('P', 'T')
+                writer.writerow([
+                    e.clase.fecha.isoformat(),
+                    e.clase_id,
+                    _csv_safe(e.clase.get_estado_display()),
+                    _csv_safe(e.get_categoria_registrada_display() or e.jugador.get_categoria_display()),
+                    _csv_safe(e.jugador.nombre_completo),
+                    _csv_safe(e.get_asistencia_display()),
+                    e.nota_frenado if scored and e.nota_frenado > 0 else '',
+                    e.nota_pase if scored and e.nota_pase > 0 else '',
+                    e.nota_tiro if scored and e.nota_tiro > 0 else '',
+                ])
+            return response
+
+        from .report_pdf import build_report
         content = build_report(data['mes'], data.get('jugador'), data.get('categoria'))
         log(request, 'Exportó reporte mensual ' + data['mes'].strftime('%Y-%m'))
         response = HttpResponse(content, content_type='application/pdf')

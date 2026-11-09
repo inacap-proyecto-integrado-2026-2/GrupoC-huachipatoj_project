@@ -1,12 +1,16 @@
+import csv
 import json
+import secrets
 from datetime import timedelta
 from functools import wraps
 from django import forms
+from django.contrib import messages
 from django.contrib.auth.decorators import login_required
+from django.contrib.auth.models import User
 from django.core.exceptions import PermissionDenied
 from django.db import transaction, IntegrityError
 from django.db.models import Count, Q
-from django.http import JsonResponse, FileResponse
+from django.http import JsonResponse, FileResponse, HttpResponse
 from django.shortcuts import render, redirect, get_object_or_404
 from django.urls import reverse
 from django.utils import timezone
@@ -27,6 +31,63 @@ def coach(view):
 
 def log(request, text):
     Auditoria.objects.create(usuario=request.user, accion=text)
+
+
+def _csv_safe(value):
+    text = '' if value is None else str(value)
+    if text and text[0] in ('=', '+', '-', '@', '\t', '\r'):
+        return "'" + text
+    return text
+
+
+def _skill_mean(rows, field):
+    values = [
+        getattr(e, field)
+        for e in rows
+        if e.clase.estado == 'realizada' and e.asistencia in ('P', 'T') and getattr(e, field) > 0
+    ]
+    return round(sum(values) / len(values), 1) if values else None
+
+
+def _create_or_reset_player_account(player, *, reset=False):
+    alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'
+    raw_password = 'Cdh#' + ''.join(secrets.choice(alphabet) for _ in range(6))
+    existing = User.objects.filter(username=player.rut).first()
+    if existing:
+        if existing.is_staff or existing.is_superuser or not reset:
+            return existing, None, False
+        existing.set_password(raw_password)
+        if not existing.first_name and player.nombre_completo:
+            existing.first_name = player.nombre_completo[:150]
+        existing.save()
+        return existing, raw_password, False
+    user = User.objects.create_user(
+        username=player.rut,
+        password=raw_password,
+        first_name=player.nombre_completo[:150],
+        is_staff=False,
+    )
+    return user, raw_password, True
+
+
+def _student_justificable_evaluaciones(player):
+    if not player:
+        return Evaluacion.objects.none()
+    return (
+        Evaluacion.objects.filter(jugador=player, asistencia__in=['A', 'T'])
+        .exclude(justificativo__estado__in=['pendiente', 'aprobado'])
+        .select_related('clase')
+        .order_by('-clase__fecha', '-id')
+    )
+
+
+def _filtered_players(q, categoria):
+    qs = Jugador.objects.order_by('nombre_completo')
+    if q:
+        qs = qs.filter(Q(nombre_completo__icontains=q) | Q(rut__icontains=q))
+    if categoria:
+        qs = qs.filter(categoria=categoria)
+    return qs
 
 
 @coach
@@ -66,13 +127,46 @@ def pista(request):
 def home(request):
     if not request.user.is_staff:
         player = Jugador.objects.filter(rut=request.user.username).first()
+        evals_asc = (
+            list(Evaluacion.objects.filter(jugador=player).select_related('clase').order_by('clase__fecha', 'id'))
+            if player
+            else []
+        )
+        chart = [
+            {
+                'fecha': str(e.clase.fecha),
+                'frenado': e.nota_frenado or None,
+                'pase': e.nota_pase or None,
+                'tiro': e.nota_tiro or None,
+            }
+            for e in evals_asc
+            if e.asistencia in ('P', 'T') and e.clase.estado == 'realizada'
+        ]
+        valid_evals = [e for e in evals_asc if e.clase.estado == 'realizada']
+        present_count = sum(1 for e in valid_evals if e.asistencia in ('P', 'T'))
+        avg_skills = [v for v in (_skill_mean(valid_evals, 'nota_frenado'), _skill_mean(valid_evals, 'nota_pase'), _skill_mean(valid_evals, 'nota_tiro')) if v is not None]
+        avg_general = round(sum(avg_skills) / len(avg_skills), 1) if avg_skills else None
+        routines_list = list(Rutina.objects.filter(jugador=player).order_by('completada', '-fecha')) if player else []
+        justificativos_list = (
+            list(Justificativo.objects.filter(evaluacion__jugador=player).select_related('evaluacion__clase').order_by('-creado')[:10])
+            if player
+            else []
+        )
         return render(
             request,
             'seguimiento/student.html',
             {
                 'player': player,
-                'evaluaciones': Evaluacion.objects.filter(jugador=player).select_related('clase').order_by('-clase__fecha', '-id'),
-                'rutinas': Rutina.objects.filter(jugador=player).order_by('-fecha'),
+                'evaluaciones': list(reversed(evals_asc)),
+                'chart': chart,
+                'rutinas': routines_list,
+                'justificativos': justificativos_list,
+                'stat_presentes': present_count,
+                'stat_evaluaciones': len(evals_asc),
+                'stat_promedio': avg_general,
+                'stat_rutinas_pendientes': sum(1 for r in routines_list if not r.completada),
+                'stat_rutinas_completadas': sum(1 for r in routines_list if r.completada),
+                'has_pending_evals': _student_justificable_evaluaciones(player).exists() if player else False,
             },
         )
     if 'sesion' in request.GET:
@@ -229,8 +323,61 @@ def save_score(request):
 @coach
 def players(request):
     q = request.GET.get('q', '').strip()
-    rows = Jugador.objects.filter(Q(nombre_completo__icontains=q) | Q(rut__icontains=q)).order_by('nombre_completo')
-    return render(request, 'seguimiento/players.html', {'jugadores': rows, 'q': q})
+    categoria = request.GET.get('categoria', '').strip()
+    rows = list(_filtered_players(q, categoria))
+    ruts = [p.rut for p in rows]
+    account_ruts = set(User.objects.filter(username__in=ruts).values_list('username', flat=True)) if ruts else set()
+    auth_by_player = {}
+    if rows:
+        for auth in Autorizacion.objects.filter(jugador__in=rows).order_by('-fecha', '-id'):
+            if auth.jugador_id not in auth_by_player:
+                auth_by_player[auth.jugador_id] = auth
+    for p in rows:
+        p.tiene_cuenta = p.rut in account_ruts
+        p.ultima_autorizacion = auth_by_player.get(p.pk)
+    return render(
+        request,
+        'seguimiento/players.html',
+        {
+            'jugadores': rows,
+            'q': q,
+            'categoria': categoria,
+            'categorias': Jugador.CATEGORIAS,
+        },
+    )
+
+
+@coach
+def export_players_csv(request):
+    q = request.GET.get('q', '').strip()
+    categoria = request.GET.get('categoria', '').strip()
+    rows = list(_filtered_players(q, categoria))
+    ruts = [p.rut for p in rows]
+    account_ruts = set(User.objects.filter(username__in=ruts).values_list('username', flat=True)) if ruts else set()
+    auth_by_player = {}
+    if rows:
+        for auth in Autorizacion.objects.filter(jugador__in=rows).order_by('-fecha', '-id'):
+            if auth.jugador_id not in auth_by_player:
+                auth_by_player[auth.jugador_id] = auth.get_estado_display()
+
+    response = HttpResponse(content_type='text/csv; charset=utf-8')
+    response['Content-Disposition'] = 'attachment; filename="Huachipato-jugadores.csv"'
+    response['Cache-Control'] = 'private, no-store'
+    response.write('\ufeff')
+    writer = csv.writer(response)
+    writer.writerow(['RUT', 'Nombre completo', 'Categoría', 'Fecha nacimiento', 'Contacto emergencia', 'Acceso portal', 'Autorización'])
+    for p in rows:
+        writer.writerow([
+            _csv_safe(p.rut),
+            _csv_safe(p.nombre_completo),
+            _csv_safe(p.get_categoria_display()),
+            _csv_safe(p.fecha_nacimiento.isoformat()),
+            _csv_safe(p.contacto_emergencia),
+            'Activa' if p.rut in account_ruts else 'Sin cuenta',
+            _csv_safe(auth_by_player.get(p.pk, 'Sin registro')),
+        ])
+    log(request, f'Exportó nómina de jugadores CSV ({len(rows)} registros)')
+    return response
 
 
 @coach
@@ -242,8 +389,23 @@ def player_edit(request, pk=None):
         if old_rut and old_rut != form.cleaned_data['rut']:
             form.add_error('rut', 'El RUT vincula la cuenta del jugador. No se puede cambiar en esta versión.')
         else:
-            obj = form.save()
-            log(request, f'Guardó jugador {obj.pk}')
+            with transaction.atomic():
+                obj = form.save()
+                log(request, f'Guardó jugador {obj.pk}')
+                if not instance and form.cleaned_data.get('crear_cuenta'):
+                    _, raw_password, _ = _create_or_reset_player_account(obj, reset=False)
+                    if raw_password:
+                        log(request, f'Creó acceso portal para jugador {obj.pk}')
+                        messages.success(
+                            request,
+                            f'Jugador {obj.nombre_completo} guardado. Cuenta creada — Usuario: {obj.rut} · Contraseña temporal: {raw_password}',
+                        )
+                    else:
+                        messages.success(request, f'Jugador {obj.nombre_completo} guardado correctamente.')
+                else:
+                    if instance:
+                        User.objects.filter(username=obj.rut, is_staff=False).update(first_name=obj.nombre_completo[:150])
+                    messages.success(request, f'Jugador {obj.nombre_completo} guardado correctamente.')
             return redirect('jugadores')
     return render(
         request,
@@ -254,6 +416,27 @@ def player_edit(request, pk=None):
             'cancel_url': reverse('jugadores'),
         },
     )
+
+
+@coach
+@require_POST
+def player_access(request, pk):
+    player = get_object_or_404(Jugador, pk=pk)
+    with transaction.atomic():
+        _, raw_password, created = _create_or_reset_player_account(player, reset=True)
+        if raw_password is None:
+            messages.warning(request, 'No es posible restablecer la clave de una cuenta perteneciente al cuerpo técnico.')
+        else:
+            action_text = 'Creó acceso portal' if created else 'Restableció clave portal'
+            log(request, f'{action_text} para jugador {player.pk}')
+            label = 'Acceso creado' if created else 'Contraseña temporal restablecida'
+            messages.success(
+                request,
+                f'{label} para {player.nombre_completo} — Usuario: {player.rut} · Contraseña temporal: {raw_password}',
+            )
+    if request.POST.get('next') == 'historial':
+        return redirect('historial', pk=player.pk)
+    return redirect('jugadores')
 
 
 @coach
@@ -273,6 +456,7 @@ def history(request, pk):
             'evaluaciones': evaluations,
             'chart': chart,
             'rutinas': Rutina.objects.filter(jugador=player).order_by('-fecha'),
+            'tiene_cuenta': User.objects.filter(username=player.rut).exists(),
         },
     )
 
@@ -297,12 +481,49 @@ class DocumentForm(forms.ModelForm):
         return file
 
 
+class StudentDocumentForm(forms.ModelForm):
+    class Meta:
+        model = Justificativo
+        fields = ['evaluacion', 'motivo', 'archivo']
+        labels = {
+            'evaluacion': 'Entrenamiento con ausencia o atraso',
+            'motivo': 'Motivo',
+            'archivo': 'Respaldo PDF o JPG (máx. 10 MB)',
+        }
+
+    def __init__(self, player, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['evaluacion'].queryset = _student_justificable_evaluaciones(player)
+        self.fields['evaluacion'].label_from_instance = (
+            lambda e: f'{e.clase.fecha} · {e.get_asistencia_display()} · sesión #{e.clase_id}'
+        )
+
+    def clean_archivo(self):
+        return DocumentForm.clean_archivo(self)
+
+
 @coach
 def documents(request):
+    q = request.GET.get('q', '').strip()
+    estado = request.GET.get('estado', '').strip()
+    qs = Justificativo.objects.select_related('evaluacion__jugador', 'evaluacion__clase').order_by('-creado')
+    if q:
+        qs = qs.filter(
+            Q(evaluacion__jugador__nombre_completo__icontains=q)
+            | Q(evaluacion__jugador__rut__icontains=q)
+            | Q(motivo__icontains=q)
+        )
+    if estado in ('pendiente', 'aprobado', 'rechazado'):
+        qs = qs.filter(estado=estado)
     return render(
         request,
         'seguimiento/documents.html',
-        {'documentos': Justificativo.objects.select_related('evaluacion__jugador', 'evaluacion__clase').order_by('-creado')},
+        {
+            'documentos': qs,
+            'q': q,
+            'estado': estado,
+            'estados': Justificativo._meta.get_field('estado').choices,
+        },
     )
 
 
@@ -312,6 +533,7 @@ def document_add(request):
     if request.method == 'POST' and form.is_valid():
         obj = form.save()
         log(request, f'Cargó justificativo {obj.pk}')
+        messages.success(request, 'Justificativo adjuntado correctamente.')
         return redirect('justificativos')
     return render(
         request,
@@ -321,6 +543,36 @@ def document_add(request):
             'titulo': 'Adjuntar justificativo',
             'ayuda': 'Selecciona una asistencia registrada como ausente o atraso. Al aprobar se marcará Ausente justificado.',
             'cancel_url': reverse('justificativos'),
+        },
+    )
+
+
+@login_required
+def student_document_add(request):
+    if request.user.is_staff:
+        return redirect('nuevo_justificativo')
+    player = Jugador.objects.filter(rut=request.user.username).first()
+    if not player:
+        messages.warning(request, 'Tu usuario no está vinculado a un deportista registrado.')
+        return redirect('panel_entrenador')
+    form = StudentDocumentForm(player, request.POST or None, request.FILES or None)
+    if request.method == 'GET' and not form.fields['evaluacion'].queryset.exists():
+        messages.info(request, 'No tienes ausencias o atrasos pendientes de justificar.')
+    if request.method == 'POST' and form.is_valid():
+        obj = form.save(commit=False)
+        obj.estado = 'pendiente'
+        obj.save()
+        log(request, f'Deportista cargó justificativo {obj.pk}')
+        messages.success(request, 'Justificativo enviado. Quedó pendiente de revisión por el entrenador.')
+        return redirect('panel_entrenador')
+    return render(
+        request,
+        'seguimiento/form.html',
+        {
+            'form': form,
+            'titulo': 'Enviar justificativo',
+            'ayuda': 'Adjunta un certificado o respaldo en PDF o JPG (hasta 10 MB). El cuerpo técnico lo revisará antes de justificar la inasistencia.',
+            'cancel_url': reverse('panel_entrenador'),
         },
     )
 
@@ -345,6 +597,7 @@ def document_review(request, pk):
             if decision == 'aprobado':
                 Evaluacion.objects.filter(pk=doc.evaluacion_id).update(asistencia='J', nota_frenado=0, nota_pase=0, nota_tiro=0)
             log(request, f'Justificativo {pk}: {decision}')
+            messages.success(request, f'Justificativo #{pk} marcado como {decision}.')
     return redirect('justificativos')
 
 
@@ -366,6 +619,7 @@ def equipment_edit(request, pk=None):
     if request.method == 'POST' and form.is_valid():
         obj = form.save()
         log(request, f'Guardó equipo {obj.pk}')
+        messages.success(request, f'Equipo {obj.codigo} guardado correctamente.')
         return redirect('inventario')
     return render(
         request,
@@ -393,6 +647,7 @@ def loan(request, pk):
                     p.equipo = equipment
                     p.save()
                     log(request, f'Prestó equipo {pk} al jugador {p.jugador_id}')
+                messages.success(request, f'Préstamo de {equipment.nombre} registrado para {p.jugador.nombre_completo}.')
                 return redirect('inventario')
             except IntegrityError:
                 form.add_error(None, 'Este equipo ya tiene un préstamo pendiente.')
@@ -412,12 +667,36 @@ def loan(request, pk):
 def return_loan(request, pk):
     if Prestamo.objects.filter(pk=pk, devuelto__isnull=True).update(devuelto=timezone.now()):
         log(request, f'Devolvió préstamo {pk}')
+        messages.success(request, 'Devolución de equipamiento registrada.')
     return redirect('inventario')
 
 
 @coach
 def routines(request):
-    return render(request, 'seguimiento/routines.html', {'rutinas': Rutina.objects.select_related('jugador').order_by('-fecha')})
+    jugador_id = request.GET.get('jugador', '').strip()
+    categoria = request.GET.get('categoria', '').strip()
+    estado = request.GET.get('estado', '').strip()
+    qs = Rutina.objects.select_related('jugador').order_by('completada', '-fecha')
+    if jugador_id.isdigit():
+        qs = qs.filter(jugador_id=int(jugador_id))
+    if categoria:
+        qs = qs.filter(jugador__categoria=categoria)
+    if estado == 'pendientes':
+        qs = qs.filter(completada=False)
+    elif estado == 'completadas':
+        qs = qs.filter(completada=True)
+    return render(
+        request,
+        'seguimiento/routines.html',
+        {
+            'rutinas': qs,
+            'jugadores': Jugador.objects.order_by('nombre_completo'),
+            'categorias': Jugador.CATEGORIAS,
+            'jugador_sel': jugador_id,
+            'categoria': categoria,
+            'estado': estado,
+        },
+    )
 
 
 @coach
@@ -431,6 +710,7 @@ def routine_edit(request, pk=None):
     if request.method == 'POST' and form.is_valid():
         obj = form.save()
         log(request, f'Guardó rutina {obj.pk}')
+        messages.success(request, f'Rutina "{obj.titulo}" guardada correctamente.')
         return redirect('rutinas')
     return render(
         request,
@@ -439,6 +719,40 @@ def routine_edit(request, pk=None):
             'form': form,
             'titulo': 'Rutina individual',
             'cancel_url': reverse('rutinas'),
+        },
+    )
+
+
+@login_required
+@require_POST
+def student_complete_routine(request, pk):
+    player = get_object_or_404(Jugador, rut=request.user.username)
+    routine = get_object_or_404(Rutina, pk=pk, jugador=player)
+    if not routine.completada:
+        routine.completada = True
+        routine.save(update_fields=['completada'])
+        log(request, f'Deportista completó rutina {routine.pk}')
+        messages.success(request, f'Rutina "{routine.titulo}" marcada como completada.')
+    return redirect('panel_entrenador')
+
+
+@coach
+def audit_log(request):
+    q = request.GET.get('q', '').strip()
+    usuario_id = request.GET.get('usuario', '').strip()
+    qs = Auditoria.objects.select_related('usuario').order_by('-fecha', '-id')
+    if q:
+        qs = qs.filter(accion__icontains=q)
+    if usuario_id.isdigit():
+        qs = qs.filter(usuario_id=int(usuario_id))
+    return render(
+        request,
+        'seguimiento/audit.html',
+        {
+            'registros': qs[:150],
+            'q': q,
+            'usuario_sel': usuario_id,
+            'usuarios': User.objects.filter(auditoria__isnull=False).distinct().order_by('username'),
         },
     )
 

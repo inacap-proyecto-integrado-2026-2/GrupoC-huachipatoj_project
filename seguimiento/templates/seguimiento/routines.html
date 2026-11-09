@@ -11,5 +11,40 @@
     </div>
   </div>
 
+  <div class="card">
+    <form class="toolbar" method="get">
+      <label>
+        Jugador
+        <select name="jugador" aria-label="Filtrar por jugador">
+          <option value="">Todos los jugadores</option>
+          {% for j in jugadores %}
+            <option value="{{ j.pk }}" {% if jugador_sel == j.pk|stringformat:"s" %}selected{% endif %}>{{ j.nombre_completo }}</option>
+          {% endfor %}
+        </select>
+      </label>
+      <label>
+        Categoría
+        <select name="categoria" aria-label="Filtrar por categoría">
+          <option value="">Todas las categorías</option>
+          {% for code, label in categorias %}
+            <option value="{{ code }}" {% if categoria == code %}selected{% endif %}>{{ label }}</option>
+          {% endfor %}
+        </select>
+      </label>
+      <label>
+        Estado
+        <select name="estado" aria-label="Filtrar por estado">
+          <option value="">Todos</option>
+          <option value="pendientes" {% if estado == 'pendientes' %}selected{% endif %}>Pendientes</option>
+          <option value="completadas" {% if estado == 'completadas' %}selected{% endif %}>Completadas</option>
+        </select>
+      </label>
+      <button type="submit">Filtrar</button>
+      {% if jugador_sel or categoria or estado %}
+        <a class="button button-secondary" href="{% url 'rutinas' %}">Limpiar</a>
+      {% endif %}
+    </form>
+  </div>
+
   {% include 'seguimiento/routines_list.html' %}
 {% endblock %}

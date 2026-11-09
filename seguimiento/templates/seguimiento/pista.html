@@ -43,12 +43,21 @@
         <strong>Sesión #{{ sesion.pk }} · {{ sesion.fecha }}</strong> ·
         <span class="badge badge-{{ sesion.estado }}">{{ sesion.get_estado_display }}</span> ·
         {{ sesion.get_categoria_display|default:'Histórica sin categoría' }} ·
-        Evaluados: <strong>{{ evaluadas }} de {{ total_filas }}</strong> ·
+        Evaluados: <strong data-pista-progress>{{ evaluadas }} de {{ total_filas }}</strong> ·
         <a href="{% url 'editar_clase' sesion.pk %}">Editar clase o cambiar estado</a>
         {% if bloqueada %}
           <p>La evaluación está en modo consulta. Para registrar asistencia y notas, la clase debe estar realizada y su fecha no puede ser futura.</p>
         {% endif %}
       </div>
+
+      {% if filas %}
+        <div class="pista-tools">
+          <input type="search" data-pista-filter placeholder="Filtrar jugador por nombre o RUT..." aria-label="Filtrar jugador en pista">
+          {% if not bloqueada %}
+            <button type="button" class="button-secondary button-sm" data-mark-all-present>Marcar pendientes como Presente</button>
+          {% endif %}
+        </div>
+      {% endif %}
     {% endif %}
   </div>
 
@@ -67,7 +76,7 @@
         </thead>
         <tbody>
           {% for p, e in filas %}
-            <tr class="player" data-player="{{ p.pk }}" data-session="{{ sesion.pk }}" data-locked="{{ bloqueada|yesno:'1,0' }}">
+            <tr class="player" data-player="{{ p.pk }}" data-session="{{ sesion.pk }}" data-locked="{{ bloqueada|yesno:'1,0' }}" data-search="{{ p.nombre_completo|lower }} {{ p.rut|lower }}">
               <td>
                 <a href="{% url 'historial' p.pk %}"><strong>{{ p.nombre_completo }}</strong></a><br>
                 <small>{{ p.get_categoria_display }}</small>
@@ -105,6 +114,9 @@
               <td colspan="6" class="empty">Sin jugadores. Agrégalos en Plantilla jugadores.</td>
             </tr>
           {% endfor %}
+          <tr data-pista-empty-filter hidden>
+            <td colspan="6" class="empty">Ningún jugador coincide con la búsqueda ingresada.</td>
+          </tr>
         </tbody>
       </table>
     </div>

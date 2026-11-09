@@ -51,13 +51,13 @@ if os.environ.get('VERCEL_URL'):
 # Application definition
 
 INSTALLED_APPS = [
+    'seguimiento',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    'seguimiento',
 ]
 
 MIDDLEWARE = [
@@ -95,10 +95,15 @@ WSGI_APPLICATION = 'miproyecto.wsgi.application'
 # Database (PostgreSQL en Supabase vía DATABASE_URL, o SQLite en local)
 
 TESTING = len(sys.argv) > 1 and sys.argv[1] == 'test'
+USE_LOCAL_SQLITE = (not IS_VERCEL) and (os.environ.get('LOCAL_SQLITE', '').strip() == '1')
 DATABASE_URL = (
-    os.environ.get('TEST_DATABASE_URL', '').strip()
-    if TESTING and not IS_VERCEL
-    else os.environ.get('DATABASE_URL', '').strip()
+    ''
+    if USE_LOCAL_SQLITE
+    else (
+        os.environ.get('TEST_DATABASE_URL', '').strip()
+        if TESTING and not IS_VERCEL
+        else os.environ.get('DATABASE_URL', '').strip()
+    )
 )
 
 
@@ -158,6 +163,11 @@ AUTH_PASSWORD_VALIDATORS = [
     {'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator'},
 ]
 
+AUTHENTICATION_BACKENDS = [
+    'django.contrib.auth.backends.ModelBackend',
+    'seguimiento.auth_backends.RutAuthenticationBackend',
+]
+
 
 # Internationalization
 
@@ -182,7 +192,7 @@ SUPABASE_BUCKET = os.environ.get('SUPABASE_BUCKET', 'huachipato-media').strip()
 
 MEDIA_ROOT = Path('/tmp/private_media') if IS_VERCEL else (BASE_DIR / 'private_media')
 
-USE_SUPABASE_STORAGE = bool(not TESTING and SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY)
+USE_SUPABASE_STORAGE = bool(not TESTING and not USE_LOCAL_SQLITE and SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY)
 
 STORAGES = {
     'default': {

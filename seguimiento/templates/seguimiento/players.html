@@ -4,18 +4,31 @@
   <div class="page-header">
     <div>
       <h1>Plantilla de jugadores</h1>
-      <p class="muted">Datos, categoría e historial de cada deportista.</p>
+      <p class="muted">Datos, categoría, autorización, acceso al portal e historial de cada deportista.</p>
     </div>
     <div class="quick-actions">
       <a class="button" href="{% url 'agregar_jugador' %}">+ Agregar jugador</a>
+      <a class="button button-secondary" href="{% url 'exportar_jugadores' %}?q={{ q|urlencode }}&categoria={{ categoria|urlencode }}">Exportar CSV</a>
     </div>
   </div>
 
   <div class="card">
     <form class="toolbar" method="get">
-      <input name="q" value="{{ q }}" placeholder="Buscar nombre o RUT" aria-label="Buscar jugador">
-      <button type="submit">Buscar</button>
-      {% if q %}
+      <label>
+        Buscar
+        <input name="q" value="{{ q }}" placeholder="Nombre o RUT" aria-label="Buscar jugador">
+      </label>
+      <label>
+        Categoría
+        <select name="categoria" aria-label="Categoría">
+          <option value="">Todas las categorías</option>
+          {% for code, label in categorias %}
+            <option value="{{ code }}" {% if categoria == code %}selected{% endif %}>{{ label }}</option>
+          {% endfor %}
+        </select>
+      </label>
+      <button type="submit">Filtrar</button>
+      {% if q or categoria %}
         <a class="button button-secondary" href="{% url 'jugadores' %}">Limpiar</a>
       {% endif %}
     </form>
@@ -27,6 +40,7 @@
         <tr>
           <th>Jugador</th>
           <th>Categoría</th>
+          <th>Estado documental y portal</th>
           <th>Contacto de emergencia</th>
           <th>Acciones</th>
         </tr>
@@ -39,15 +53,37 @@
               <small>{{ p.rut }}</small>
             </td>
             <td><span class="badge">{{ p.get_categoria_display }}</span></td>
+            <td>
+              <div class="badge-group">
+                {% if p.ultima_autorizacion %}
+                  <span class="badge badge-{{ p.ultima_autorizacion.estado }}">Autorización: {{ p.ultima_autorizacion.get_estado_display }}</span>
+                {% else %}
+                  <span class="badge">Sin autorización</span>
+                {% endif %}
+                {% if p.tiene_cuenta %}
+                  <span class="badge badge-info">Portal activo</span>
+                {% else %}
+                  <span class="badge">Sin acceso portal</span>
+                {% endif %}
+              </div>
+            </td>
             <td>{{ p.contacto_emergencia }}</td>
             <td>
-              <a class="button button-secondary button-sm" href="{% url 'historial' p.pk %}">Ver evolución</a>
-              <a class="button button-secondary button-sm" href="{% url 'editar_jugador' p.pk %}">Editar</a>
+              <div class="quick-actions">
+                <a class="button button-secondary button-sm" href="{% url 'historial' p.pk %}">Ver evolución</a>
+                <a class="button button-secondary button-sm" href="{% url 'editar_jugador' p.pk %}">Editar</a>
+                <form class="inline" method="post" action="{% url 'acceso_jugador' p.pk %}">
+                  {% csrf_token %}
+                  <button type="submit" class="button-secondary button-sm">
+                    {% if p.tiene_cuenta %}Restablecer clave{% else %}Crear acceso{% endif %}
+                  </button>
+                </form>
+              </div>
             </td>
           </tr>
         {% empty %}
           <tr>
-            <td colspan="4" class="empty">No hay jugadores que mostrar. Agrega el primero para comenzar.</td>
+            <td colspan="5" class="empty">No hay jugadores que coincidan con este filtro. Agrega el primero para comenzar.</td>
           </tr>
         {% endfor %}
       </tbody>

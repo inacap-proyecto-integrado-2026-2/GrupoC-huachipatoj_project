@@ -4,14 +4,15 @@
   <div class="page-header">
     <div>
       <h1>Reportes mensuales</h1>
-      <p class="muted">Selecciona un mes y un jugador o una categoría para descargar el informe PDF.</p>
+      <p class="muted">Selecciona un mes y un jugador o una categoría para descargar el informe en PDF o planilla CSV.</p>
     </div>
   </div>
 
   <form class="card edit" method="get">
     {{ form.as_p }}
     <div class="form-actions">
-      <button type="submit">Descargar PDF</button>
+      <button type="submit" name="formato" value="pdf">Descargar PDF</button>
+      <button type="submit" name="formato" value="csv" class="button-secondary">Exportar CSV</button>
     </div>
   </form>
 

@@ -3,7 +3,7 @@
 {% block content %}
   <div class="auth-card">
     <h2>Ingresar al club</h2>
-    <p class="muted">Accede con tu cuenta de entrenador o deportista.</p>
+    <p class="muted">Accede con tu usuario de entrenador o con tu RUT (con o sin puntos ni guión).</p>
 
     <form method="post">
       {% csrf_token %}
@@ -12,7 +12,7 @@
       {% endif %}
       <p>
         <label for="username">Usuario o RUT</label>
-        <input id="username" name="username" autocomplete="username" required>
+        <input id="username" name="username" autocomplete="username" placeholder="Ej: 12.345.678-5" required>
       </p>
       <p>
         <label for="password">Contraseña</label>

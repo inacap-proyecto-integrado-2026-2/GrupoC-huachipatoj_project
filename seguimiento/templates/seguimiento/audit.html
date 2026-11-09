@@ -1,0 +1,57 @@
+{% extends 'seguimiento/base.html' %}
+
+{% block content %}
+  <div class="page-header">
+    <div>
+      <h1>Registro de auditoría</h1>
+      <p class="muted">Historial de últimas acciones administrativas, evaluaciones y exportaciones (máximo 150 recientes).</p>
+    </div>
+  </div>
+
+  <div class="card">
+    <form class="toolbar" method="get">
+      <label>
+        Buscar acción
+        <input name="q" value="{{ q }}" placeholder="Ej: Evaluó, Justificativo, CSV" aria-label="Buscar en auditoría">
+      </label>
+      <label>
+        Usuario
+        <select name="usuario" aria-label="Filtrar por usuario">
+          <option value="">Todos los usuarios</option>
+          {% for u in usuarios %}
+            <option value="{{ u.pk }}" {% if usuario_sel == u.pk|stringformat:"s" %}selected{% endif %}>{{ u.username }}</option>
+          {% endfor %}
+        </select>
+      </label>
+      <button type="submit">Filtrar</button>
+      {% if q or usuario_sel %}
+        <a class="button button-secondary" href="{% url 'auditoria' %}">Limpiar</a>
+      {% endif %}
+    </form>
+  </div>
+
+  <div class="card table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Fecha y hora</th>
+          <th>Usuario</th>
+          <th>Acción registrada</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for r in registros %}
+          <tr>
+            <td>{{ r.fecha|date:"d/m/Y H:i:s" }}</td>
+            <td><span class="badge">{{ r.usuario.username|default:'Sistema' }}</span></td>
+            <td>{{ r.accion }}</td>
+          </tr>
+        {% empty %}
+          <tr>
+            <td colspan="3" class="empty">No hay movimientos registrados para este filtro.</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+{% endblock %}
