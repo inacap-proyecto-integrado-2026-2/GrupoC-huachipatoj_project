@@ -181,11 +181,13 @@ SUPABASE_BUCKET = os.environ.get('SUPABASE_BUCKET', 'huachipato-media').strip()
 
 MEDIA_ROOT = Path('/tmp/private_media') if IS_VERCEL else (BASE_DIR / 'private_media')
 
+USE_SUPABASE_STORAGE = bool(not TESTING and SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY)
+
 STORAGES = {
     'default': {
         'BACKEND': (
             'seguimiento.storage.SupabaseStorage'
-            if (SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY)
+            if USE_SUPABASE_STORAGE
             else 'django.core.files.storage.FileSystemStorage'
         ),
     },
