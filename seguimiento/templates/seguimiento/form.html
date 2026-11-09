@@ -1,1 +1,14 @@
-{% extends 'seguimiento/base.html' %}{% block content %}<h1>{{ titulo }}</h1><p class="muted">{{ ayuda }}</p><form class="card edit" method="post" enctype="multipart/form-data">{% csrf_token %}{{ form.as_p }}<button>Guardar</button></form>{% endblock %}
+{% extends 'seguimiento/base.html' %}
+
+{% block content %}
+  <h1>{{ titulo }}</h1>
+  {% if ayuda %}
+    <p class="muted">{{ ayuda }}</p>
+  {% endif %}
+
+  <form class="card edit" method="post" enctype="multipart/form-data">
+    {% csrf_token %}
+    {{ form.as_p }}
+    <button type="submit">Guardar</button>
+  </form>
+{% endblock %}

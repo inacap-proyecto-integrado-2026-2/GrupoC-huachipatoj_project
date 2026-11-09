@@ -1,0 +1,480 @@
+/* ==========================================================================
+   CD Huachipato · Seguimiento Deportivo (Hockey en Patines)
+   Hoja de estilos principal (Dark Theme Mobile-First)
+   ========================================================================== */
+
+:root {
+  color-scheme: dark;
+  --bg: #0b1220;
+  --bg-nav: #101d30;
+  --bg-input: #0b1627;
+  --panel: #142237;
+  --line: #2a3e56;
+  --border-input: #4a6079;
+  --text: #edf5ff;
+  --muted: #afc2d5;
+  --blue: #38bdf8;
+  --primary: #0876a9;
+  --primary-hover: #095e89;
+  --nav-active: #075985;
+  --badge-bg: #23435c;
+  --danger: #fda4af;
+  --focus: #fbbf24;
+  --score-bg: #25374c;
+  --score-selected: #0284c7;
+  --score-low: #be123c;
+  --score-mid: #a16207;
+  --score-high: #047857;
+}
+
+/* 1. Reset y utilidades base */
+* {
+  box-sizing: border-box;
+}
+
+[hidden] {
+  display: none !important;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font: 16px/1.5 system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+a {
+  color: var(--blue);
+  text-decoration: none;
+}
+
+a:hover {
+  text-decoration: underline;
+}
+
+a:focus-visible,
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline: 3px solid var(--focus);
+  outline-offset: 2px;
+}
+
+h1 {
+  font-size: 30px;
+  margin-top: 0;
+  margin-bottom: 10px;
+}
+
+h2 {
+  font-size: 21px;
+  margin-top: 24px;
+  margin-bottom: 12px;
+}
+
+small,
+.muted {
+  color: var(--muted);
+}
+
+/* 2. Cabecera y navegación principal */
+header {
+  padding: 20px 5%;
+  border-bottom: 1px solid var(--line);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 20px;
+}
+
+header strong {
+  font-size: 23px;
+  letter-spacing: -0.01em;
+}
+
+nav {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  padding: 14px 5%;
+  background: var(--bg-nav);
+  border-bottom: 1px solid var(--line);
+}
+
+nav a {
+  padding: 10px 14px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  transition: background-color 0.15s ease, border-color 0.15s ease;
+}
+
+nav a:hover {
+  background: rgba(56, 189, 248, 0.08);
+  text-decoration: none;
+}
+
+nav a.active {
+  background: var(--nav-active);
+  border-color: var(--nav-active);
+  color: #ffffff;
+  font-weight: 600;
+}
+
+main {
+  max-width: 1450px;
+  margin: auto;
+  padding: 28px 5%;
+}
+
+/* 3. Contenedores, tarjetas y barras de herramientas */
+.card {
+  padding: 22px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--panel);
+  margin-bottom: 20px;
+}
+
+.card h2:first-child {
+  margin-top: 0;
+}
+
+.toolbar {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+  margin: 18px 0;
+}
+
+.toolbar > form {
+  min-width: 0;
+  max-width: 100%;
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  align-items: flex-end;
+}
+
+.toolbar select {
+  min-width: 0;
+}
+
+.notice {
+  padding: 15px 18px;
+  border-left: 4px solid var(--blue);
+  border-radius: 8px;
+  background: var(--panel);
+  margin-bottom: 16px;
+}
+
+.notice p:last-child {
+  margin-bottom: 0;
+}
+
+.badge {
+  display: inline-block;
+  border-radius: 20px;
+  background: var(--badge-bg);
+  padding: 5px 11px;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.empty {
+  padding: 30px;
+  color: var(--muted);
+  text-align: center;
+}
+
+.inline {
+  display: inline;
+}
+
+/* 4. Tablas */
+.table-wrap {
+  overflow-x: auto;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+th,
+td {
+  text-align: left;
+  padding: 14px;
+  border-bottom: 1px solid var(--line);
+  vertical-align: top;
+}
+
+th {
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--muted);
+}
+
+tbody tr:hover {
+  background: rgba(255, 255, 255, 0.02);
+}
+
+/* 5. Botones y formularios */
+button,
+.button {
+  display: inline-block;
+  background: var(--primary);
+  color: #ffffff;
+  border: 0;
+  border-radius: 8px;
+  padding: 11px 16px;
+  font: inherit;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+
+button:hover,
+.button:hover {
+  background: var(--primary-hover);
+  text-decoration: none;
+}
+
+button:disabled {
+  opacity: 0.45;
+  cursor: wait;
+}
+
+input,
+select,
+textarea {
+  background: var(--bg-input);
+  color: #ffffff;
+  border: 1px solid var(--border-input);
+  border-radius: 7px;
+  padding: 11px;
+  font: inherit;
+  max-width: 100%;
+}
+
+input[readonly] {
+  opacity: 0.7;
+  cursor: not-allowed;
+  border-style: dashed;
+}
+
+textarea {
+  width: 100%;
+  height: 120px;
+  resize: vertical;
+}
+
+label {
+  display: block;
+  margin-bottom: 7px;
+  font-weight: 500;
+}
+
+.edit {
+  max-width: 750px;
+}
+
+.edit p {
+  margin-top: 0;
+  margin-bottom: 16px;
+}
+
+.edit input:not([type="checkbox"]),
+.edit select {
+  width: 100%;
+}
+
+.helptext {
+  display: block;
+  margin-top: 6px;
+  color: var(--muted);
+  font-size: 14px;
+}
+
+.errorlist {
+  margin: 0 0 10px 0;
+  padding-left: 18px;
+}
+
+.errorlist,
+.error {
+  color: var(--danger);
+}
+
+/* 6. Grilla de evaluación en pista */
+.scores {
+  display: flex;
+  gap: 3px;
+  min-width: 300px;
+}
+
+.scores button {
+  padding: 8px;
+  min-width: 27px;
+  background: var(--score-bg);
+}
+
+.scores button.selected {
+  background: var(--score-selected);
+  outline: 2px solid #ffffff;
+}
+
+.scores button.low.selected {
+  background: var(--score-low);
+}
+
+.scores button.mid.selected {
+  background: var(--score-mid);
+}
+
+.scores button.high.selected {
+  background: var(--score-high);
+}
+
+.status {
+  display: inline-block;
+  font-size: 13px;
+  min-width: 100px;
+}
+
+.absent .scores {
+  opacity: 0.35;
+}
+
+/* 7. Gráficos de evolución */
+canvas {
+  width: 100%;
+  height: 260px;
+  display: block;
+}
+
+/* 8. Calendario */
+.calendar-wrap {
+  overflow-x: auto;
+}
+
+.calendar-grid {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(140px, 1fr));
+  gap: 8px;
+}
+
+.calendar-day {
+  padding: 12px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  min-height: 110px;
+}
+
+.calendar-event {
+  font-size: 14px;
+  border-top: 1px solid var(--line);
+  padding-top: 10px;
+  margin-top: 10px;
+}
+
+.calendar-event p {
+  margin: 8px 0;
+}
+
+/* 9. Diseño responsivo (Tablet y Móvil en cancha) */
+@media (max-width: 900px) {
+  .pista-table,
+  .pista-table tbody,
+  .pista-table tr,
+  .pista-table td {
+    display: block;
+  }
+
+  .pista-table thead {
+    display: none;
+  }
+
+  .pista-table tr.player {
+    border-bottom: 2px solid var(--line);
+    padding-bottom: 18px;
+    margin-bottom: 18px;
+  }
+
+  .pista-table td {
+    border: 0;
+    padding: 8px 0;
+  }
+
+  .pista-table td[data-label]::before {
+    content: attr(data-label);
+    display: block;
+    color: var(--muted);
+    margin-bottom: 9px;
+    font-size: 13px;
+  }
+
+  .scores {
+    min-width: 0;
+  }
+
+  .scores button {
+    flex: 1;
+    min-height: 40px;
+    padding: 5px;
+  }
+
+  .pista-table .attendance {
+    width: 100%;
+  }
+}
+
+@media (max-width: 650px) {
+  main {
+    padding: 22px 14px;
+  }
+
+  header {
+    padding: 18px 14px;
+  }
+
+  nav {
+    padding: 12px;
+  }
+
+  h1 {
+    font-size: 25px;
+  }
+
+  .card {
+    padding: 14px;
+  }
+
+  th,
+  td {
+    padding: 10px;
+  }
+
+  .calendar-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .calendar-day:has(.calendar-event) {
+    display: block;
+  }
+
+  .calendar-day:not(:has(.calendar-event)) {
+    display: none;
+  }
+
+  .toolbar > form {
+    width: 100%;
+  }
+
+  .toolbar > form select {
+    width: 100%;
+  }
+}

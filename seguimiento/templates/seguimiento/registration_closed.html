@@ -1,1 +1,9 @@
-{% extends 'seguimiento/base.html' %}{% block content %}<h1>Solicitar acceso</h1><p>Durante la prueba, el administrador del club crea las cuentas. Contacta al entrenador para solicitar la tuya.</p><a href="{% url 'login' %}">Volver al inicio de sesión</a>{% endblock %}
+{% extends 'seguimiento/base.html' %}
+
+{% block content %}
+  <h1>Solicitar acceso</h1>
+  <div class="card edit">
+    <p>Durante esta versión, el administrador del club crea las cuentas. Contacta al entrenador para solicitar la tuya.</p>
+    <a class="button" href="{% url 'login' %}">Volver al inicio de sesión</a>
+  </div>
+{% endblock %}

@@ -1,1 +1,17 @@
-{% extends 'seguimiento/base.html' %}{% block content %}<h1>Reportes mensuales</h1><p>Selecciona un mes y un jugador o una categoría para descargar el informe PDF.</p><form class="card edit" method="get">{{ form.as_p }}<button>Descargar PDF</button></form><p class="muted">Incluye agenda, asistencia, notas, promedios y evolución. Solo se promedian notas de clases realizadas y jugadores presentes o atrasados. Las habilidades sin evaluar y las ausencias no se promedian. Las observaciones privadas no se exportan.</p>{% endblock %}
+{% extends 'seguimiento/base.html' %}
+
+{% block content %}
+  <h1>Reportes mensuales</h1>
+  <p>Selecciona un mes y un jugador o una categoría para descargar el informe PDF.</p>
+
+  <form class="card edit" method="get">
+    {{ form.as_p }}
+    <button type="submit">Descargar PDF</button>
+  </form>
+
+  <p class="muted">
+    Incluye agenda, asistencia, notas, promedios y evolución. Solo se promedian notas de clases realizadas y
+    jugadores presentes o atrasados. Las habilidades sin evaluar y las ausencias no se promedian.
+    Las observaciones privadas no se exportan.
+  </p>
+{% endblock %}

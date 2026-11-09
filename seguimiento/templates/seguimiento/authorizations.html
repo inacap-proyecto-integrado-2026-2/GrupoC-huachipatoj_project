@@ -1,1 +1,27 @@
-{% extends 'seguimiento/base.html' %}{% block content %}<h1>Autorizaciones de apoderados</h1><p class="muted">Documentos de autorización de datos. Acceso restringido al personal del club.</p><div class="toolbar"><a class="button" href="{% url 'nueva_autorizacion' %}">+ Registrar autorización</a></div>{% for a in autorizaciones %}<article class="card"><h2>{{ a.jugador.nombre_completo }}</h2><p>Apoderado: {{ a.apoderado }} · Fecha: {{ a.fecha }}</p><p>Responsable: {{ a.responsable }} · <span class="badge">{{ a.get_estado_display }}</span></p><div class="toolbar"><a href="{% url 'editar_autorizacion' a.pk %}">Revisar o cambiar estado</a><a href="{% url 'archivo_autorizacion' a.pk %}">Descargar documento</a></div></article>{% empty %}<div class="card empty">Sin autorizaciones registradas.</div>{% endfor %}{% endblock %}
+{% extends 'seguimiento/base.html' %}
+
+{% block content %}
+  <h1>Autorizaciones de apoderados</h1>
+  <p class="muted">Documentos de autorización de datos. Acceso restringido al personal del club.</p>
+
+  <div class="toolbar">
+    <a class="button" href="{% url 'nueva_autorizacion' %}">+ Registrar autorización</a>
+  </div>
+
+  {% for a in autorizaciones %}
+    <article class="card">
+      <h2>{{ a.jugador.nombre_completo }}</h2>
+      <p>Apoderado: {{ a.apoderado }} · Fecha: {{ a.fecha }}</p>
+      <p>
+        Responsable: {{ a.responsable }} ·
+        <span class="badge">{{ a.get_estado_display }}</span>
+      </p>
+      <div class="toolbar">
+        <a href="{% url 'editar_autorizacion' a.pk %}">Revisar o cambiar estado</a>
+        <a href="{% url 'archivo_autorizacion' a.pk %}">Descargar documento</a>
+      </div>
+    </article>
+  {% empty %}
+    <div class="card empty">Sin autorizaciones registradas.</div>
+  {% endfor %}
+{% endblock %}

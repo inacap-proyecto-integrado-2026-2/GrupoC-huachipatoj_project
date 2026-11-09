@@ -1,3 +1,48 @@
-<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Huachipato · Seguimiento deportivo</title><style>
-:root{color-scheme:dark;--bg:#0b1220;--panel:#142237;--line:#2a3e56;--muted:#afc2d5;--blue:#38bdf8}*{box-sizing:border-box}[hidden]{display:none!important}body{margin:0;background:var(--bg);color:#edf5ff;font:16px system-ui}a{color:var(--blue);text-decoration:none}a:hover{text-decoration:underline}header{padding:22px 5%;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:center;gap:20px}header strong{font-size:23px}small,.muted{color:var(--muted)}nav{display:flex;gap:10px;flex-wrap:wrap;padding:16px 5%;background:#101d30}nav a{padding:10px 14px;border:1px solid var(--line);border-radius:8px}nav a.active{background:#075985;color:white}main{max-width:1450px;margin:auto;padding:28px 5%}h1{font-size:30px;margin-top:0}h2{font-size:21px}.toolbar{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin:18px 0}.card{padding:22px;border:1px solid var(--line);border-radius:14px;background:var(--panel);margin-bottom:20px}.table-wrap{overflow-x:auto}table{width:100%;border-collapse:collapse}th,td{text-align:left;padding:14px;border-bottom:1px solid var(--line);vertical-align:top}th{font-size:13px;color:var(--muted)}button,.button{display:inline-block;background:#0876a9;color:white;border:0;border-radius:8px;padding:11px 16px;font:inherit;cursor:pointer}button:hover,.button:hover{background:#095e89;text-decoration:none}button:disabled{opacity:.45;cursor:wait}input,select,textarea{background:#0b1627;color:white;border:1px solid #4a6079;border-radius:7px;padding:11px;font:inherit;max-width:100%}textarea{width:100%;height:120px}label{display:block;margin-bottom:7px}.edit{max-width:750px}.edit input:not([type=checkbox]),.edit select{width:100%}.helptext{display:block;color:var(--muted);font-size:14px}.errorlist,.error{color:#fda4af}.badge{display:inline-block;border-radius:20px;background:#23435c;padding:5px 11px;font-size:13px}.empty{padding:30px;color:var(--muted)}.inline{display:inline}.scores{display:flex;gap:3px;min-width:300px}.scores button{padding:8px;min-width:27px;background:#25374c}.scores button.selected{background:#0284c7;outline:2px solid white}.scores button.low.selected{background:#be123c}.scores button.mid.selected{background:#a16207}.scores button.high.selected{background:#047857}.status{font-size:13px;min-width:100px}.absent .scores{opacity:.35}canvas{width:100%;height:260px}a:focus-visible,button:focus-visible{outline:3px solid #fbbf24}@media(max-width:900px){.pista-table,.pista-table tbody,.pista-table tr,.pista-table td{display:block}.pista-table tr:first-child{display:none}.pista-table tr.player{border-bottom:2px solid var(--line);padding-bottom:18px;margin-bottom:18px}.pista-table td{border:0}.pista-table td[data-label]::before{content:attr(data-label);display:block;color:var(--muted);margin-bottom:9px}.scores{min-width:0}.scores button{flex:1;min-height:40px;padding:5px}.pista-table .attendance{width:100%}}@media(max-width:650px){main{padding:22px 14px}header{padding:18px 14px}nav{padding:12px}h1{font-size:25px}.card{padding:14px}th,td{padding:10px}}
-.calendar-grid{display:grid;grid-template-columns:repeat(7,minmax(140px,1fr));gap:8px}.calendar-wrap{overflow-x:auto}.calendar-day{padding:12px;background:var(--panel);border:1px solid var(--line);border-radius:9px;min-height:110px}.calendar-event{font-size:14px;border-top:1px solid var(--line);padding-top:10px;margin-top:10px}.calendar-event p{margin:8px 0}.notice{padding:15px;border-left:4px solid #38bdf8;background:var(--panel);margin-bottom:15px}@media(max-width:650px){.calendar-grid{grid-template-columns:1fr}.calendar-day:has(.calendar-event){display:block}.calendar-day:not(:has(.calendar-event)){display:none}} .toolbar>form{min-width:0;max-width:100%;display:flex;gap:8px;flex-wrap:wrap}.toolbar select{min-width:0}@media(max-width:650px){.toolbar>form{width:100%}.toolbar>form select{width:100%}} </style></head><body><header><div><strong>CD Huachipato</strong><br><small>Hockey en patines · Versión de prueba</small></div>{% if user.is_authenticated %}<form method="post" action="{% url 'logout' %}">{% csrf_token %}<button>Salir</button></form>{% endif %}</header>{% if user.is_staff %}<nav>{% with current=request.resolver_match.url_name %}<a href="/" class="{% if current == 'panel_entrenador' %}active{% endif %}">Evaluación en pista</a><a href="{% url 'jugadores' %}" class="{% if current == 'jugadores' %}active{% endif %}">Plantilla jugadores</a><a href="{% url 'rutinas' %}" class="{% if current == 'rutinas' %}active{% endif %}">Rutinas</a><a href="{% url 'justificativos' %}" class="{% if current == 'justificativos' %}active{% endif %}">Justificativos</a><a href="{% url 'inventario' %}" class="{% if current == 'inventario' %}active{% endif %}">Inventario club</a><a href="{% url 'calendario' %}" class="{% if current == 'calendario' %}active{% endif %}">Calendario</a><a href="{% url 'reportes' %}" class="{% if current == 'reportes' %}active{% endif %}">Reportes PDF</a><a href="{% url 'autorizaciones' %}" class="{% if current == 'autorizaciones' %}active{% endif %}">Autorizaciones</a>{% endwith %}</nav>{% endif %}<main>{% for message in messages %}<div class="notice" role="status">{{ message }}</div>{% endfor %}{% block content %}{% endblock %}</main></body></html>
+{% load static %}
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Huachipato · Seguimiento deportivo</title>
+  <link rel="stylesheet" href="{% static 'seguimiento/css/styles.css' %}">
+</head>
+<body>
+  <header>
+    <div>
+      <strong>CD Huachipato</strong><br>
+      <small>Hockey en patines · Seguimiento deportivo</small>
+    </div>
+    {% if user.is_authenticated %}
+      <form method="post" action="{% url 'logout' %}">
+        {% csrf_token %}
+        <button type="submit">Salir</button>
+      </form>
+    {% endif %}
+  </header>
+
+  {% if user.is_staff %}
+    <nav aria-label="Menú principal">
+      {% with current=request.resolver_match.url_name %}
+        <a href="{% url 'panel_entrenador' %}" class="{% if current == 'panel_entrenador' %}active{% endif %}">Evaluación en pista</a>
+        <a href="{% url 'jugadores' %}" class="{% if current == 'jugadores' %}active{% endif %}">Plantilla jugadores</a>
+        <a href="{% url 'rutinas' %}" class="{% if current == 'rutinas' %}active{% endif %}">Rutinas</a>
+        <a href="{% url 'justificativos' %}" class="{% if current == 'justificativos' %}active{% endif %}">Justificativos</a>
+        <a href="{% url 'inventario' %}" class="{% if current == 'inventario' %}active{% endif %}">Inventario club</a>
+        <a href="{% url 'calendario' %}" class="{% if current == 'calendario' %}active{% endif %}">Calendario</a>
+        <a href="{% url 'reportes' %}" class="{% if current == 'reportes' %}active{% endif %}">Reportes PDF</a>
+        <a href="{% url 'autorizaciones' %}" class="{% if current == 'autorizaciones' %}active{% endif %}">Autorizaciones</a>
+      {% endwith %}
+    </nav>
+  {% endif %}
+
+  <main>
+    {% for message in messages %}
+      <div class="notice" role="status">{{ message }}</div>
+    {% endfor %}
+    {% block content %}{% endblock %}
+  </main>
+
+  {% block scripts %}{% endblock %}
+</body>
+</html>

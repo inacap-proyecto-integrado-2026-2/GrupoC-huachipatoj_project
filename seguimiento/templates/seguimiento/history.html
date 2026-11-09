@@ -1,1 +1,27 @@
-{% extends 'seguimiento/base.html' %}{% block content %}<h1>{{ player.nombre_completo }}</h1><p class="muted">{{ player.get_categoria_display }} · Evolución individual</p><p>{{ player.observaciones|default:'' }}</p><div class="card"><h2>Evolución de habilidades</h2><p>Frenado (azul) · Pase (verde) · Tiro (amarillo). Escala 1–10.</p><canvas id="chart" role="img" aria-label="Evolución de notas; valores detallados en la tabla siguiente"></canvas><p id="chart-empty"></p></div>{{ chart|json_script:'chart-data' }}{% include 'seguimiento/evaluations_list.html' %}<h2>Rutinas y cumplimiento</h2>{% include 'seguimiento/routines_list.html' %}<script>const data=JSON.parse(document.getElementById('chart-data').textContent);const canvas=document.getElementById('chart');function draw(){canvas.width=canvas.clientWidth*2;canvas.height=520;let c=canvas.getContext('2d');c.scale(2,2);let w=canvas.clientWidth,h=260;c.font='12px system-ui';c.fillStyle='#afc2d5';for(let n=1;n<=10;n++){let y=220-(n-1)*21;c.fillText(n,3,y+4);c.strokeStyle='#2a3e56';c.beginPath();c.moveTo(25,y);c.lineTo(w-15,y);c.stroke()}[['frenado','#38bdf8'],['pase','#34d399'],['tiro','#fbbf24']].forEach(([key,color])=>{c.strokeStyle=color;c.fillStyle=color;c.beginPath();let started=false;data.forEach((d,i)=>{if(d[key]===null){started=false;return}let x=30+i*(w-60)/Math.max(data.length-1,1),y=220-(d[key]-1)*21;if(started)c.lineTo(x,y);else c.moveTo(x,y);started=true});c.stroke();data.forEach((d,i)=>{if(d[key]===null)return;c.beginPath();c.arc(30+i*(w-60)/Math.max(data.length-1,1),220-(d[key]-1)*21,4,0,Math.PI*2);c.fill()})});c.fillStyle='#afc2d5';if(data.length){c.fillText(data[0].fecha,25,250);if(data.length>1)c.fillText(data[data.length-1].fecha,w-100,250)}}if(!data.length)document.getElementById('chart-empty').textContent='Sin notas disponibles. Registra evaluaciones para ver la evolución.';draw();window.addEventListener('resize',draw);</script>{% endblock %}
+{% extends 'seguimiento/base.html' %}
+{% load static %}
+
+{% block content %}
+  <h1>{{ player.nombre_completo }}</h1>
+  <p class="muted">{{ player.get_categoria_display }} · Evolución individual</p>
+  {% if player.observaciones %}
+    <p>{{ player.observaciones }}</p>
+  {% endif %}
+
+  <div class="card">
+    <h2>Evolución de habilidades</h2>
+    <p>Frenado (azul) · Pase (verde) · Tiro (amarillo). Escala 1–10.</p>
+    <canvas id="chart" role="img" aria-label="Evolución de notas; valores detallados en la tabla siguiente"></canvas>
+    <p id="chart-empty" class="muted"></p>
+  </div>
+
+  {{ chart|json_script:'chart-data' }}
+  {% include 'seguimiento/evaluations_list.html' %}
+
+  <h2>Rutinas y cumplimiento</h2>
+  {% include 'seguimiento/routines_list.html' %}
+{% endblock %}
+
+{% block scripts %}
+  <script src="{% static 'seguimiento/js/history.js' %}" defer></script>
+{% endblock %}

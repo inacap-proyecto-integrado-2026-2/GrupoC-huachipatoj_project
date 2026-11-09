@@ -1,1 +1,19 @@
-{% for r in rutinas %}<article class="card"><small>{{ r.fecha }} · {{ r.jugador.nombre_completo }}</small><h2>{{ r.titulo }}</h2><p><strong>Objetivo:</strong> {{ r.objetivo }}</p><div>{{ r.ejercicios|linebreaksbr }}</div><p><span class="badge">{% if r.completada %}Completada{% else %}Pendiente{% endif %}</span></p>{% if r.observaciones %}<p>Seguimiento: {{ r.observaciones|linebreaksbr }}</p>{% endif %}{% if user.is_staff %}<a href="{% url 'editar_rutina' r.pk %}">Editar / registrar cumplimiento</a>{% endif %}</article>{% empty %}<p class="empty">Aún no hay rutinas asignadas.</p>{% endfor %}
+{% for r in rutinas %}
+  <article class="card">
+    <small>{{ r.fecha }} · {{ r.jugador.nombre_completo }}</small>
+    <h2>{{ r.titulo }}</h2>
+    <p><strong>Objetivo:</strong> {{ r.objetivo }}</p>
+    <div>{{ r.ejercicios|linebreaksbr }}</div>
+    <p>
+      <span class="badge">{% if r.completada %}Completada{% else %}Pendiente{% endif %}</span>
+    </p>
+    {% if r.observaciones %}
+      <p>Seguimiento: {{ r.observaciones|linebreaksbr }}</p>
+    {% endif %}
+    {% if user.is_staff %}
+      <a href="{% url 'editar_rutina' r.pk %}">Editar / registrar cumplimiento</a>
+    {% endif %}
+  </article>
+{% empty %}
+  <p class="empty">Aún no hay rutinas asignadas.</p>
+{% endfor %}

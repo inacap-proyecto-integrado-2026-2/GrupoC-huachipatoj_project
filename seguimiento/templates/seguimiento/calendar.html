@@ -1,1 +1,79 @@
-{% extends 'seguimiento/base.html' %}{% block content %}<h1>Calendario de entrenamientos</h1><p class="muted">Programa las clases y consulta su estado. {{ start }} a {{ end }}.</p><div class="toolbar"><a class="button" href="{% url 'programar_clase' %}">+ Programar clase</a><a href="?fecha={{ prev|date:'Y-m-d' }}&vista={{ vista }}&categoria={{ categoria }}">Anterior</a><a href="?fecha={{ next|date:'Y-m-d' }}&vista={{ vista }}&categoria={{ categoria }}">Siguiente</a></div><form class="toolbar" method="get"><label>Fecha<input name="fecha" type="date" value="{{ anchor|date:'Y-m-d' }}"></label><label>Vista<select name="vista"><option value="mes" {% if vista == 'mes' %}selected{% endif %}>Mes</option><option value="semana" {% if vista == 'semana' %}selected{% endif %}>Semana</option><option value="lista" {% if vista == 'lista' %}selected{% endif %}>Listado</option></select></label><label>Categoría<select name="categoria"><option value="">Todas</option>{% for code,label in categorias %}<option value="{{ code }}" {% if categoria == code %}selected{% endif %}>{{ label }}</option>{% endfor %}</select></label><button>Mostrar</button></form>{% if vista != 'lista' %}<div class="calendar-wrap"><div class="calendar-grid">{% for week in grid %}{% for day,items,current in week %}<section class="calendar-day {% if not current %}muted{% endif %}"><strong>{{ day|date:'D d/m' }}</strong>{% for s in items %}<article class="calendar-event"><a href="{% url 'editar_clase' s.pk %}">{{ s.hora|time:'H:i'|default:'Sin hora' }} · {{ s.get_categoria_display|default:'Histórica' }}</a><br><span class="badge">{{ s.get_estado_display }}</span><p>{{ s.objetivo|default:'Sin objetivo registrado' }}</p><a href="/?sesion={{ s.pk }}">Asistencia y notas</a></article>{% endfor %}</section>{% endfor %}{% endfor %}</div></div>{% endif %}{% if vista == 'lista' %}<h2>Clases del período</h2>{% for s in clases %}<article class="card"><h2>{{ s.fecha }} · {{ s.hora|time:'H:i'|default:'Sin hora' }}</h2><p>{{ s.get_categoria_display|default:'Histórica sin categoría' }} · {{ s.profesor }} · <span class="badge">{{ s.get_estado_display }}</span></p><p>{{ s.objetivo }}</p><div class="toolbar"><a href="{% url 'editar_clase' s.pk %}">Editar o cancelar</a><a href="/?sesion={{ s.pk }}">Abrir evaluación</a></div></article>{% empty %}<div class="card empty">No hay clases en este período. Programa una nueva clase.</div>{% endfor %}{% endif %}{% endblock %}
+{% extends 'seguimiento/base.html' %}
+
+{% block content %}
+  <h1>Calendario de entrenamientos</h1>
+  <p class="muted">Programa las clases y consulta su estado. {{ start }} a {{ end }}.</p>
+
+  <div class="toolbar">
+    <a class="button" href="{% url 'programar_clase' %}">+ Programar clase</a>
+    <a href="?fecha={{ prev|date:'Y-m-d' }}&vista={{ vista }}&categoria={{ categoria }}">Anterior</a>
+    <a href="?fecha={{ next|date:'Y-m-d' }}&vista={{ vista }}&categoria={{ categoria }}">Siguiente</a>
+  </div>
+
+  <form class="toolbar" method="get">
+    <label>
+      Fecha
+      <input name="fecha" type="date" value="{{ anchor|date:'Y-m-d' }}">
+    </label>
+    <label>
+      Vista
+      <select name="vista">
+        <option value="mes" {% if vista == 'mes' %}selected{% endif %}>Mes</option>
+        <option value="semana" {% if vista == 'semana' %}selected{% endif %}>Semana</option>
+        <option value="lista" {% if vista == 'lista' %}selected{% endif %}>Listado</option>
+      </select>
+    </label>
+    <label>
+      Categoría
+      <select name="categoria">
+        <option value="">Todas</option>
+        {% for code, label in categorias %}
+          <option value="{{ code }}" {% if categoria == code %}selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+      </select>
+    </label>
+    <button type="submit">Mostrar</button>
+  </form>
+
+  {% if vista != 'lista' %}
+    <div class="calendar-wrap">
+      <div class="calendar-grid">
+        {% for week in grid %}
+          {% for day, items, current in week %}
+            <section class="calendar-day {% if not current %}muted{% endif %}">
+              <strong>{{ day|date:'D d/m' }}</strong>
+              {% for s in items %}
+                <article class="calendar-event">
+                  <a href="{% url 'editar_clase' s.pk %}">
+                    {{ s.hora|time:'H:i'|default:'Sin hora' }} · {{ s.get_categoria_display|default:'Histórica' }}
+                  </a><br>
+                  <span class="badge">{{ s.get_estado_display }}</span>
+                  <p>{{ s.objetivo|default:'Sin objetivo registrado' }}</p>
+                  <a href="/?sesion={{ s.pk }}">Asistencia y notas</a>
+                </article>
+              {% endfor %}
+            </section>
+          {% endfor %}
+        {% endfor %}
+      </div>
+    </div>
+  {% else %}
+    <h2>Clases del período</h2>
+    {% for s in clases %}
+      <article class="card">
+        <h2>{{ s.fecha }} · {{ s.hora|time:'H:i'|default:'Sin hora' }}</h2>
+        <p>
+          {{ s.get_categoria_display|default:'Histórica sin categoría' }} · {{ s.profesor }} ·
+          <span class="badge">{{ s.get_estado_display }}</span>
+        </p>
+        <p>{{ s.objetivo }}</p>
+        <div class="toolbar">
+          <a href="{% url 'editar_clase' s.pk %}">Editar o cancelar</a>
+          <a href="/?sesion={{ s.pk }}">Abrir evaluación</a>
+        </div>
+      </article>
+    {% empty %}
+      <div class="card empty">No hay clases en este período. Programa una nueva clase.</div>
+    {% endfor %}
+  {% endif %}
+{% endblock %}

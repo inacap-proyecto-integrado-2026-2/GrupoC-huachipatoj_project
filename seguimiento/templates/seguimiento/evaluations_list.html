@@ -1,1 +1,40 @@
-<div class="card table-wrap"><table><tr><th>Entrenamiento</th><th>Asistencia</th><th>Frenado</th><th>Pase</th><th>Tiro</th>{% if user.is_staff %}<th>Observación privada</th>{% endif %}</tr>{% for e in evaluaciones %}<tr><td>{{ e.clase.fecha }} · #{{ e.clase_id }}<br><small>{{ e.clase.get_estado_display }}</small></td><td>{{ e.get_asistencia_display }}</td><td>{{ e.nota_frenado|default:'—' }}</td><td>{{ e.nota_pase|default:'—' }}</td><td>{{ e.nota_tiro|default:'—' }}</td>{% if user.is_staff %}<td>{{ e.observacion_privada|default:'Sin observación'|linebreaksbr }}<br><a href="{% url 'observacion' e.pk %}">Editar</a></td>{% endif %}</tr>{% empty %}<tr><td colspan="5">Sin evaluaciones registradas.</td></tr>{% endfor %}</table></div>
+<div class="card table-wrap">
+  <table>
+    <thead>
+      <tr>
+        <th>Entrenamiento</th>
+        <th>Asistencia</th>
+        <th>Frenado</th>
+        <th>Pase</th>
+        <th>Tiro</th>
+        {% if user.is_staff %}
+          <th>Observación privada</th>
+        {% endif %}
+      </tr>
+    </thead>
+    <tbody>
+      {% for e in evaluaciones %}
+        <tr>
+          <td>
+            {{ e.clase.fecha }} · #{{ e.clase_id }}<br>
+            <small>{{ e.clase.get_estado_display }}</small>
+          </td>
+          <td>{{ e.get_asistencia_display }}</td>
+          <td>{{ e.nota_frenado|default:'—' }}</td>
+          <td>{{ e.nota_pase|default:'—' }}</td>
+          <td>{{ e.nota_tiro|default:'—' }}</td>
+          {% if user.is_staff %}
+            <td>
+              {{ e.observacion_privada|default:'Sin observación'|linebreaksbr }}<br>
+              <a href="{% url 'observacion' e.pk %}">Editar</a>
+            </td>
+          {% endif %}
+        </tr>
+      {% empty %}
+        <tr>
+          <td colspan="{% if user.is_staff %}6{% else %}5{% endif %}" class="empty">Sin evaluaciones registradas.</td>
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>

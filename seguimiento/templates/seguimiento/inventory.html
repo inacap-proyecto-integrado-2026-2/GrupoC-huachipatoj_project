@@ -1,1 +1,80 @@
-{% extends 'seguimiento/base.html' %}{% block content %}<h1>Inventario del club</h1><p class="muted">Control de equipamiento, préstamos y devoluciones.</p><div class="toolbar"><a class="button" href="{% url 'nuevo_equipo' %}">+ Agregar equipo</a><a href="?pendientes=1">Devoluciones pendientes</a><a href="{% url 'inventario' %}">Ver todos</a></div><div class="card table-wrap"><table><tr><th>Equipo</th><th>Conservación</th><th>Asignación</th><th>Acciones</th></tr>{% for e,p in filas %}<tr><td>{{ e.nombre }}<br><small>{{ e.codigo }}</small></td><td>{{ e.get_estado_display }}</td><td>{% if p %}{{ p.jugador.nombre_completo }}{% else %}Sin préstamo{% endif %}</td><td><a href="{% url 'editar_equipo' e.pk %}">Editar</a> · {% if p %}<form class="inline" method="post" action="{% url 'devolver' p.pk %}">{% csrf_token %}<button>Registrar devolución</button></form>{% elif e.estado != 'reparacion' %}<a href="{% url 'prestar' e.pk %}">Prestar</a>{% endif %}</td></tr>{% empty %}<tr><td colspan="4" class="empty">No hay equipos para este filtro.</td></tr>{% endfor %}</table></div><h2>Historial de préstamos</h2><div class="card table-wrap"><table><tr><th>Equipo</th><th>Jugador</th><th>Préstamo</th><th>Devolución</th></tr>{% for p in prestamos %}<tr><td>{{ p.equipo }}</td><td>{{ p.jugador.nombre_completo }}</td><td>{{ p.fecha }}</td><td>{{ p.devuelto|default:'Pendiente' }}</td></tr>{% empty %}<tr><td colspan="4">Aún no hay préstamos.</td></tr>{% endfor %}</table></div>{% endblock %}
+{% extends 'seguimiento/base.html' %}
+
+{% block content %}
+  <h1>Inventario del club</h1>
+  <p class="muted">Control de equipamiento, préstamos y devoluciones.</p>
+
+  <div class="toolbar">
+    <a class="button" href="{% url 'nuevo_equipo' %}">+ Agregar equipo</a>
+    <a href="?pendientes=1">Devoluciones pendientes</a>
+    <a href="{% url 'inventario' %}">Ver todos</a>
+  </div>
+
+  <div class="card table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Equipo</th>
+          <th>Conservación</th>
+          <th>Asignación</th>
+          <th>Acciones</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for e, p in filas %}
+          <tr>
+            <td>
+              {{ e.nombre }}<br>
+              <small>{{ e.codigo }}</small>
+            </td>
+            <td>{{ e.get_estado_display }}</td>
+            <td>{% if p %}{{ p.jugador.nombre_completo }}{% else %}Sin préstamo{% endif %}</td>
+            <td>
+              <a href="{% url 'editar_equipo' e.pk %}">Editar</a> ·
+              {% if p %}
+                <form class="inline" method="post" action="{% url 'devolver' p.pk %}">
+                  {% csrf_token %}
+                  <button type="submit">Registrar devolución</button>
+                </form>
+              {% elif e.estado != 'reparacion' %}
+                <a href="{% url 'prestar' e.pk %}">Prestar</a>
+              {% endif %}
+            </td>
+          </tr>
+        {% empty %}
+          <tr>
+            <td colspan="4" class="empty">No hay equipos para este filtro.</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <h2>Historial de préstamos</h2>
+  <div class="card table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Equipo</th>
+          <th>Jugador</th>
+          <th>Préstamo</th>
+          <th>Devolución</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for p in prestamos %}
+          <tr>
+            <td>{{ p.equipo }}</td>
+            <td>{{ p.jugador.nombre_completo }}</td>
+            <td>{{ p.fecha }}</td>
+            <td>{{ p.devuelto|default:'Pendiente' }}</td>
+          </tr>
+        {% empty %}
+          <tr>
+            <td colspan="4" class="empty">Aún no hay préstamos.</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+{% endblock %}

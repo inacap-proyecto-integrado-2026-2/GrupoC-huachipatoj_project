@@ -1,1 +1,55 @@
-{% extends 'seguimiento/base.html' %}{% block content %}<h1>Justificativos</h1><p class="muted">Carga y revisión por el entrenador. Documentos privados PDF o JPG, hasta 10 MB.</p><div class="toolbar"><a class="button" href="{% url 'nuevo_justificativo' %}">+ Adjuntar justificativo</a></div><div class="card table-wrap"><table><tr><th>Jugador / entrenamiento</th><th>Motivo</th><th>Estado</th><th>Revisión</th></tr>{% for d in documentos %}<tr><td>{{ d.evaluacion.jugador.nombre_completo }}<br><small>{{ d.evaluacion.clase.fecha }} · #{{ d.evaluacion.clase_id }}</small></td><td>{{ d.motivo }}<br><a href="{% url 'archivo_justificativo' d.pk %}">Descargar documento</a></td><td><span class="badge">{{ d.get_estado_display }}</span></td><td>{% if d.estado == 'pendiente' %}<form method="post" action="{% url 'revisar_justificativo' d.pk %}">{% csrf_token %}<button name="estado" value="aprobado">Aprobar</button> <button name="estado" value="rechazado">Rechazar</button></form>{% else %}Revisado{% endif %}</td></tr>{% empty %}<tr><td colspan="4" class="empty">Sin justificativos. Primero registra una ausencia o atraso en una sesión.</td></tr>{% endfor %}</table></div>{% endblock %}
+{% extends 'seguimiento/base.html' %}
+
+{% block content %}
+  <h1>Justificativos</h1>
+  <p class="muted">Carga y revisión por el entrenador. Documentos privados PDF o JPG, hasta 10 MB.</p>
+
+  <div class="toolbar">
+    <a class="button" href="{% url 'nuevo_justificativo' %}">+ Adjuntar justificativo</a>
+  </div>
+
+  <div class="card table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Jugador / entrenamiento</th>
+          <th>Motivo</th>
+          <th>Estado</th>
+          <th>Revisión</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for d in documentos %}
+          <tr>
+            <td>
+              {{ d.evaluacion.jugador.nombre_completo }}<br>
+              <small>{{ d.evaluacion.clase.fecha }} · #{{ d.evaluacion.clase_id }}</small>
+            </td>
+            <td>
+              {{ d.motivo }}<br>
+              <a href="{% url 'archivo_justificativo' d.pk %}">Descargar documento</a>
+            </td>
+            <td>
+              <span class="badge">{{ d.get_estado_display }}</span>
+            </td>
+            <td>
+              {% if d.estado == 'pendiente' %}
+                <form method="post" action="{% url 'revisar_justificativo' d.pk %}">
+                  {% csrf_token %}
+                  <button type="submit" name="estado" value="aprobado">Aprobar</button>
+                  <button type="submit" name="estado" value="rechazado">Rechazar</button>
+                </form>
+              {% else %}
+                Revisado
+              {% endif %}
+            </td>
+          </tr>
+        {% empty %}
+          <tr>
+            <td colspan="4" class="empty">Sin justificativos. Primero registra una ausencia o atraso en una sesión.</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+{% endblock %}

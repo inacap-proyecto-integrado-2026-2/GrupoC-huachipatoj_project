@@ -1,4 +1,103 @@
-{% extends 'seguimiento/base.html' %}{% block content %}<h1>Evaluación en pista</h1><p class="muted">Selecciona un entrenamiento y registra asistencia y habilidades. Cada cambio se guarda automáticamente.</p><div class="toolbar"><a class="button" href="{% url 'programar_clase' %}">+ Programar entrenamiento</a><a href="{% url 'calendario' %}">Ver calendario</a><span hidden>{% csrf_token %}</span><form method="get"><select name="sesion" aria-label="Entrenamiento">{% for s in sesiones %}<option value="{{ s.pk }}" {% if sesion.pk == s.pk %}selected{% endif %}>{{ s.fecha }} · #{{ s.pk }} · {{ s.profesor }}</option>{% endfor %}</select><select name="categoria" aria-label="Categoría"><option value="">Todas las categorías</option>{% for code,label in categorias %}<option value="{{ code }}" {% if categoria == code %}selected{% endif %}>{{ label }}</option>{% endfor %}</select><button>Mostrar</button></form></div>{% if sesion %}<div class="notice">{{ sesion.get_estado_display }} · {{ sesion.get_categoria_display|default:'Histórica sin categoría' }} · <a href="{% url 'editar_clase' sesion.pk %}">Editar clase o cambiar estado</a>{% if bloqueada %}<p>La evaluación está en modo consulta. Para registrar asistencia y notas, la clase debe estar realizada y su fecha no puede ser futura.</p>{% endif %}</div><p>Entrenamiento #{{ sesion.pk }} · {{ sesion.fecha }}. Una nota vacía significa sin evaluar.</p><div class="card table-wrap"><table class="pista-table"><tr><th>Jugador</th><th>Asistencia</th><th>Frenado</th><th>Pase</th><th>Tiro</th><th>Guardado y observación</th></tr>{% for p,e in filas %}<tr class="player" data-player="{{ p.pk }}" data-session="{{ sesion.pk }}" data-locked="{{ bloqueada|yesno:'1,0' }}"><td><a href="{% url 'historial' p.pk %}">{{ p.nombre_completo }}</a><br><small>{{ p.get_categoria_display }}</small></td><td><select class="attendance" aria-label="Asistencia de {{ p.nombre_completo }}" {% if e.asistencia == 'J' %}disabled{% endif %}><option value="" disabled {% if not e %}selected{% endif %}>Sin registrar</option><option value="P" {% if e.asistencia == 'P' %}selected{% endif %}>Presente</option><option value="T" {% if e.asistencia == 'T' %}selected{% endif %}>Atraso</option><option value="A" {% if e.asistencia == 'A' %}selected{% endif %}>Ausente</option>{% if e.asistencia == 'J' %}<option value="J" selected>Ausente justificado</option>{% endif %}</select></td><td data-label="Frenado"><div class="scores" data-key="nota_frenado" data-value="{{ e.nota_frenado|default:0 }}" aria-label="Frenado"></div></td><td data-label="Pase"><div class="scores" data-key="nota_pase" data-value="{{ e.nota_pase|default:0 }}" aria-label="Pase"></div></td><td data-label="Tiro"><div class="scores" data-key="nota_tiro" data-value="{{ e.nota_tiro|default:0 }}" aria-label="Tiro"></div></td><td><span class="status" role="status">{% if e %}Guardado{% else %}Sin registrar{% endif %}</span><button class="retry" hidden>Reintentar</button><p><a class="observation" {% if e %}href="{% url 'observacion' e.pk %}"{% else %}hidden{% endif %}>Observación privada</a></p></td></tr>{% empty %}<tr><td colspan="6" class="empty">Sin jugadores. Agrégalos en Plantilla jugadores.</td></tr>{% endfor %}</table></div>{% else %}<div class="card empty">Crea el primer entrenamiento para registrar asistencia y evaluaciones.</div>{% endif %}<script>
-const token=document.querySelector('[name=csrfmiddlewaretoken]').value;let pending=new Set();window.addEventListener('beforeunload',e=>{if(pending.size){e.preventDefault();e.returnValue=''}});
-document.querySelectorAll('.player').forEach(row=>{let busy=false;const attendance=row.querySelector('.attendance'),status=row.querySelector('.status'),retry=row.querySelector('.retry');function paint(){let absent=['A','J'].includes(attendance.value);row.classList.toggle('absent',absent);row.querySelectorAll('.scores').forEach(group=>group.querySelectorAll('button').forEach(b=>{b.classList.toggle('selected',+b.dataset.score===+group.dataset.value);b.setAttribute('aria-pressed',+b.dataset.score===+group.dataset.value);b.disabled=busy||absent||!attendance.value||row.dataset.locked==='1'}));attendance.disabled=busy||attendance.value==='J'||row.dataset.locked==='1'}async function save(){if(busy)return;busy=true;pending.add(row);paint();status.textContent='Guardando…';status.classList.remove('error');retry.hidden=true;const data={jugador:+row.dataset.player,sesion:+row.dataset.session,asistencia:attendance.value};row.querySelectorAll('.scores').forEach(g=>data[g.dataset.key]=+g.dataset.value);try{const r=await fetch('{% url "guardar_evaluacion" %}',{method:'POST',headers:{'Content-Type':'application/json','X-CSRFToken':token},body:JSON.stringify(data),signal:AbortSignal.timeout(10000)});if(!r.ok)throw Error('No guardado');const result=await r.json();if(result.ok!==true)throw Error('No guardado');status.textContent='Guardado';const link=row.querySelector('.observation');link.href='/evaluaciones/'+result.evaluacion+'/observacion/';link.hidden=false;pending.delete(row)}catch(e){status.textContent='No guardado. Reintenta.';status.classList.add('error');retry.hidden=false}finally{busy=false;paint()}}row.querySelectorAll('.scores').forEach(group=>{for(let n=1;n<=10;n++){let b=document.createElement('button');b.type='button';b.textContent=n;b.dataset.score=n;b.className=n<=4?'low':n<=7?'mid':'high';b.setAttribute('aria-label',group.getAttribute('aria-label')+' '+n);b.onclick=()=>{group.dataset.value=n;save()};group.appendChild(b)}});attendance.onchange=()=>{if(!attendance.value)return;if(attendance.value==='A')row.querySelectorAll('.scores').forEach(g=>g.dataset.value=0);save()};retry.onclick=save;paint()});
-</script>{% endblock %}
+{% extends 'seguimiento/base.html' %}
+{% load static %}
+
+{% block content %}
+  <h1>Evaluación en pista</h1>
+  <p class="muted">Selecciona un entrenamiento y registra asistencia y habilidades. Cada cambio se guarda automáticamente.</p>
+
+  <div class="toolbar">
+    <a class="button" href="{% url 'programar_clase' %}">+ Programar entrenamiento</a>
+    <a href="{% url 'calendario' %}">Ver calendario</a>
+    <span hidden>{% csrf_token %}</span>
+    <form method="get">
+      <select name="sesion" aria-label="Entrenamiento">
+        {% for s in sesiones %}
+          <option value="{{ s.pk }}" {% if sesion.pk == s.pk %}selected{% endif %}>
+            {{ s.fecha }} · #{{ s.pk }} · {{ s.profesor }}
+          </option>
+        {% endfor %}
+      </select>
+      <select name="categoria" aria-label="Categoría">
+        <option value="">Todas las categorías</option>
+        {% for code, label in categorias %}
+          <option value="{{ code }}" {% if categoria == code %}selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+      </select>
+      <button type="submit">Mostrar</button>
+    </form>
+  </div>
+
+  {% if sesion %}
+    <div class="notice">
+      {{ sesion.get_estado_display }} · {{ sesion.get_categoria_display|default:'Histórica sin categoría' }} ·
+      <a href="{% url 'editar_clase' sesion.pk %}">Editar clase o cambiar estado</a>
+      {% if bloqueada %}
+        <p>La evaluación está en modo consulta. Para registrar asistencia y notas, la clase debe estar realizada y su fecha no puede ser futura.</p>
+      {% endif %}
+    </div>
+
+    <p>Entrenamiento #{{ sesion.pk }} · {{ sesion.fecha }}. Una nota vacía significa sin evaluar.</p>
+
+    <div class="card table-wrap">
+      <table class="pista-table" data-save-url="{% url 'guardar_evaluacion' %}">
+        <thead>
+          <tr>
+            <th>Jugador</th>
+            <th>Asistencia</th>
+            <th>Frenado</th>
+            <th>Pase</th>
+            <th>Tiro</th>
+            <th>Guardado y observación</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for p, e in filas %}
+            <tr class="player" data-player="{{ p.pk }}" data-session="{{ sesion.pk }}" data-locked="{{ bloqueada|yesno:'1,0' }}">
+              <td>
+                <a href="{% url 'historial' p.pk %}">{{ p.nombre_completo }}</a><br>
+                <small>{{ p.get_categoria_display }}</small>
+              </td>
+              <td>
+                <select class="attendance" aria-label="Asistencia de {{ p.nombre_completo }}" {% if e.asistencia == 'J' %}disabled{% endif %}>
+                  <option value="" disabled {% if not e %}selected{% endif %}>Sin registrar</option>
+                  <option value="P" {% if e.asistencia == 'P' %}selected{% endif %}>Presente</option>
+                  <option value="T" {% if e.asistencia == 'T' %}selected{% endif %}>Atraso</option>
+                  <option value="A" {% if e.asistencia == 'A' %}selected{% endif %}>Ausente</option>
+                  {% if e.asistencia == 'J' %}
+                    <option value="J" selected>Ausente justificado</option>
+                  {% endif %}
+                </select>
+              </td>
+              <td data-label="Frenado">
+                <div class="scores" data-key="nota_frenado" data-value="{{ e.nota_frenado|default:0 }}" aria-label="Frenado"></div>
+              </td>
+              <td data-label="Pase">
+                <div class="scores" data-key="nota_pase" data-value="{{ e.nota_pase|default:0 }}" aria-label="Pase"></div>
+              </td>
+              <td data-label="Tiro">
+                <div class="scores" data-key="nota_tiro" data-value="{{ e.nota_tiro|default:0 }}" aria-label="Tiro"></div>
+              </td>
+              <td>
+                <span class="status" role="status">{% if e %}Guardado{% else %}Sin registrar{% endif %}</span>
+                <button type="button" class="retry" hidden>Reintentar</button>
+                <p>
+                  <a class="observation" {% if e %}href="{% url 'observacion' e.pk %}"{% else %}hidden{% endif %}>Observación privada</a>
+                </p>
+              </td>
+            </tr>
+          {% empty %}
+            <tr>
+              <td colspan="6" class="empty">Sin jugadores. Agrégalos en Plantilla jugadores.</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  {% else %}
+    <div class="card empty">Crea el primer entrenamiento para registrar asistencia y evaluaciones.</div>
+  {% endif %}
+{% endblock %}
+
+{% block scripts %}
+  <script src="{% static 'seguimiento/js/pista.js' %}" defer></script>
+{% endblock %}

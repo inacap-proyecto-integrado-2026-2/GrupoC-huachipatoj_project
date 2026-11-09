@@ -20,8 +20,9 @@ class Equipo(models.Model):
     codigo = models.CharField(max_length=40, unique=True)
     nombre = models.CharField(max_length=100)
     estado = models.CharField(max_length=20, choices=[('bueno', 'Bueno'), ('desgastado', 'Desgastado'), ('reparacion', 'En reparación')], default='bueno')
+
     def __str__(self):
-        return f'{self.codigo} Â· {self.nombre}'
+        return f'{self.codigo} · {self.nombre}'
 
 
 class Prestamo(models.Model):
@@ -29,6 +30,7 @@ class Prestamo(models.Model):
     jugador = models.ForeignKey(Jugador, on_delete=models.PROTECT)
     fecha = models.DateTimeField(auto_now_add=True)
     devuelto = models.DateTimeField(null=True, blank=True)
+
     class Meta:
         constraints = [models.UniqueConstraint(fields=['equipo'], condition=models.Q(devuelto__isnull=True), name='un_prestamo_activo')]
 

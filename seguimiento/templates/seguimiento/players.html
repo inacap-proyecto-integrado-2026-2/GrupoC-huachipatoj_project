@@ -1,1 +1,47 @@
-{% extends 'seguimiento/base.html' %}{% block content %}<h1>Plantilla de jugadores</h1><p class="muted">Datos, categoría e historial de cada deportista.</p><div class="toolbar"><a class="button" href="{% url 'agregar_jugador' %}">+ Agregar jugador</a><form><input name="q" value="{{ q }}" placeholder="Buscar nombre o RUT" aria-label="Buscar jugador"><button>Buscar</button></form></div><div class="card table-wrap"><table><tr><th>Jugador</th><th>Categoría</th><th>Contacto de emergencia</th><th>Acciones</th></tr>{% for p in jugadores %}<tr><td>{{ p.nombre_completo }}<br><small>{{ p.rut }}</small></td><td>{{ p.get_categoria_display }}</td><td>{{ p.contacto_emergencia }}</td><td><a href="{% url 'historial' p.pk %}">Ver evolución</a> · <a href="{% url 'editar_jugador' p.pk %}">Editar</a></td></tr>{% empty %}<tr><td colspan="4" class="empty">No hay jugadores que mostrar. Agrega el primero para comenzar.</td></tr>{% endfor %}</table></div>{% endblock %}
+{% extends 'seguimiento/base.html' %}
+
+{% block content %}
+  <h1>Plantilla de jugadores</h1>
+  <p class="muted">Datos, categoría e historial de cada deportista.</p>
+
+  <div class="toolbar">
+    <a class="button" href="{% url 'agregar_jugador' %}">+ Agregar jugador</a>
+    <form method="get">
+      <input name="q" value="{{ q }}" placeholder="Buscar nombre o RUT" aria-label="Buscar jugador">
+      <button type="submit">Buscar</button>
+    </form>
+  </div>
+
+  <div class="card table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Jugador</th>
+          <th>Categoría</th>
+          <th>Contacto de emergencia</th>
+          <th>Acciones</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for p in jugadores %}
+          <tr>
+            <td>
+              {{ p.nombre_completo }}<br>
+              <small>{{ p.rut }}</small>
+            </td>
+            <td>{{ p.get_categoria_display }}</td>
+            <td>{{ p.contacto_emergencia }}</td>
+            <td>
+              <a href="{% url 'historial' p.pk %}">Ver evolución</a> ·
+              <a href="{% url 'editar_jugador' p.pk %}">Editar</a>
+            </td>
+          </tr>
+        {% empty %}
+          <tr>
+            <td colspan="4" class="empty">No hay jugadores que mostrar. Agrega el primero para comenzar.</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+{% endblock %}
