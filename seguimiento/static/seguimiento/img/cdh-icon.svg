@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-label="Escudo CD Huachipato Seguimiento Deportivo">
+  <defs>
+    <linearGradient id="cdh-bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0c2d57"/>
+      <stop offset="100%" stop-color="#0369a1"/>
+    </linearGradient>
+  </defs>
+  <rect width="128" height="128" rx="28" fill="url(#cdh-bg)"/>
+  <path d="M24 28h80v38c0 24-16 40-40 46-24-6-40-22-40-46V28z" fill="none" stroke="#ffffff" stroke-width="5" stroke-linejoin="round" opacity="0.9"/>
+  <path d="M40 82L78 44M78 44c5-5 12-4 14 2" fill="none" stroke="#38bdf8" stroke-width="6" stroke-linecap="round"/>
+  <circle cx="84" cy="82" r="7" fill="#ffffff"/>
+  <text x="64" y="69" text-anchor="middle" fill="#ffffff" font-family="system-ui, -apple-system, sans-serif" font-weight="800" font-size="22" letter-spacing="1">CDH</text>
+</svg>

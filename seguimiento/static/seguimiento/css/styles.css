@@ -145,6 +145,21 @@ small,
   text-decoration: none;
 }
 
+.brand-logo {
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
+  flex-shrink: 0;
+  display: block;
+}
+
+.auth-brand .brand-logo {
+  width: 52px;
+  height: 52px;
+  margin: 0 auto 10px;
+  box-shadow: var(--shadow-sm);
+}
+
 .brand-mark {
   width: 38px;
   height: 38px;
@@ -1059,6 +1074,51 @@ canvas {
   width: 100%;
   height: 260px;
   display: block;
+}
+
+.chart-hover {
+  min-height: 20px;
+  margin-top: 8px;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.offline-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-top: 12px;
+  margin-bottom: 0;
+}
+
+.inline-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.inline-select,
+.inline-input {
+  width: auto;
+  padding: 5px 8px;
+  font-size: 13px;
+  border-radius: 7px;
+}
+
+.inline-input {
+  min-width: 145px;
+}
+
+.hash-code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 12px;
+  background: var(--surface-alt);
+  border: 1px solid var(--line);
+  border-radius: 5px;
+  padding: 1px 5px;
 }
 
 .cards-grid {

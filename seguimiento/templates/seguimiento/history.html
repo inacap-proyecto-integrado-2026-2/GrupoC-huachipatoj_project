@@ -8,17 +8,28 @@
       <p class="muted">{{ player.get_categoria_display }} · {{ player.rut }} · Evolución individual</p>
     </div>
     <div class="quick-actions">
-      <a class="button button-secondary" href="{% url 'editar_jugador' player.pk %}">Editar ficha</a>
-      <form class="inline" method="post" action="{% url 'acceso_jugador' player.pk %}">
-        {% csrf_token %}
-        <input type="hidden" name="next" value="historial">
-        <button type="submit" class="button-secondary">
-          {% if tiene_cuenta %}Restablecer clave portal{% else %}Crear acceso portal{% endif %}
-        </button>
-      </form>
+      <a class="button" href="{% url 'reportes' %}?mes={{ current_month }}&jugador={{ player.pk }}">Informe PDF del mes</a>
+      {% if nav_can_sensitive %}
+        <a class="button button-secondary" href="{% url 'editar_jugador' player.pk %}">Editar ficha</a>
+        <form class="inline" method="post" action="{% url 'acceso_jugador' player.pk %}" {% if tiene_cuenta %}data-confirm="¿Generar una nueva contraseña temporal para {{ player.nombre_completo }}?"{% endif %}>
+          {% csrf_token %}
+          <input type="hidden" name="next" value="historial">
+          <button type="submit" class="button-secondary">
+            {% if tiene_cuenta %}Restablecer clave portal{% else %}Crear acceso portal{% endif %}
+          </button>
+        </form>
+      {% endif %}
       <a class="button button-secondary" href="{% url 'jugadores' %}">Volver a plantilla</a>
     </div>
   </div>
+
+  {% if nav_can_sensitive and autorizacion_actual %}
+    <p>
+      <span class="badge badge-{{ autorizacion_actual.estado }}">
+        Autorización de apoderado: {{ autorizacion_actual.get_estado_display }} ({{ autorizacion_actual.fecha|date:"d/m/Y" }})
+      </span>
+    </p>
+  {% endif %}
 
   {% if player.observaciones %}
     <div class="notice">{{ player.observaciones }}</div>
@@ -30,6 +41,7 @@
       <small>Frenado (azul) · Pase (verde) · Tiro (ámbar) · Escala 1–10</small>
     </div>
     <canvas id="chart" role="img" aria-label="Evolución de notas; valores detallados en la tabla siguiente"></canvas>
+    <p id="chart-hover" class="muted chart-hover" aria-live="polite"></p>
     <p id="chart-empty" class="muted"></p>
   </div>
 

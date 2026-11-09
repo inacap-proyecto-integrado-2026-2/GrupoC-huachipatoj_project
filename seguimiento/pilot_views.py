@@ -1,4 +1,6 @@
 import csv
+import hashlib
+import ipaddress
 import json
 import secrets
 from datetime import timedelta
@@ -12,11 +14,25 @@ from django.db import transaction, IntegrityError
 from django.db.models import Count, Q
 from django.http import JsonResponse, FileResponse, HttpResponse
 from django.shortcuts import render, redirect, get_object_or_404
+from django.templatetags.static import static
 from django.urls import reverse
 from django.utils import timezone
 from django.views.decorators.http import require_POST
 from .models import Jugador, ClaseEntrenamiento, Evaluacion, Justificativo, Equipo, Prestamo, Rutina, Auditoria, Autorizacion
 from .forms import JugadorForm
+from .roles import (
+    ROL_ADMIN,
+    ROL_ENTRENADOR,
+    ROL_ASISTENTE,
+    STAFF_ROLES,
+    VALID_STAFF_ROLE_CODES,
+    assign_staff_role,
+    can_manage_sensitive,
+    get_user_role,
+    role_required,
+)
+
+MAX_UPLOAD_BYTES = 4 * 1024 * 1024
 
 
 def coach(view):
@@ -29,8 +45,12 @@ def coach(view):
     return wrapped
 
 
+coach_titular = role_required(ROL_ADMIN, ROL_ENTRENADOR)
+club_admin = role_required(ROL_ADMIN)
+
+
 def log(request, text):
-    Auditoria.objects.create(usuario=request.user, accion=text)
+    Auditoria.objects.create(usuario=request.user, accion=text[:250])
 
 
 def _csv_safe(value):
@@ -38,6 +58,34 @@ def _csv_safe(value):
     if text and text[0] in ('=', '+', '-', '@', '\t', '\r'):
         return "'" + text
     return text
+
+
+def _sha256_file(file_obj):
+    if not file_obj:
+        return ''
+    hasher = hashlib.sha256()
+    if hasattr(file_obj, 'seek'):
+        file_obj.seek(0)
+    if hasattr(file_obj, 'chunks'):
+        for chunk in file_obj.chunks():
+            hasher.update(chunk)
+    else:
+        hasher.update(file_obj.read())
+    if hasattr(file_obj, 'seek'):
+        file_obj.seek(0)
+    return hasher.hexdigest()
+
+
+def _client_ip(request):
+    forwarded = request.META.get('HTTP_X_FORWARDED_FOR', '')
+    candidate = forwarded.split(',')[0].strip() if forwarded else request.META.get('REMOTE_ADDR', '').strip()
+    if not candidate:
+        return None
+    try:
+        ipaddress.ip_address(candidate)
+        return candidate
+    except ValueError:
+        return None
 
 
 def _skill_mean(rows, field):
@@ -90,6 +138,16 @@ def _filtered_players(q, categoria):
     return qs
 
 
+def _latest_auth_map(players):
+    auth_by_player = {}
+    if not players:
+        return auth_by_player
+    for auth in Autorizacion.objects.filter(jugador__in=players).order_by('-fecha', '-id'):
+        if auth.jugador_id not in auth_by_player:
+            auth_by_player[auth.jugador_id] = auth
+    return auth_by_player
+
+
 @coach
 def pista(request):
     sessions = ClaseEntrenamiento.objects.exclude(estado='cancelada').order_by('-fecha', '-id')
@@ -104,8 +162,13 @@ def pista(request):
     category = request.GET.get('categoria', '')
     if category:
         players_qs = players_qs.filter(categoria=category)
+    player_list = list(players_qs)
     scores = {e.jugador_id: e for e in Evaluacion.objects.filter(clase=session)}
-    filas = [(p, scores.get(p.pk)) for p in players_qs]
+    auth_map = _latest_auth_map(player_list) if can_manage_sensitive(request.user) else {}
+    filas = []
+    for p in player_list:
+        p.ultima_autorizacion = auth_map.get(p.pk)
+        filas.append((p, scores.get(p.pk)))
     evaluadas = sum(1 for _, e in filas if e is not None)
     return render(
         request,
@@ -125,6 +188,7 @@ def pista(request):
 
 @login_required
 def home(request):
+    today = timezone.localdate()
     if not request.user.is_staff:
         player = Jugador.objects.filter(rut=request.user.username).first()
         evals_asc = (
@@ -152,6 +216,25 @@ def home(request):
             if player
             else []
         )
+        proximas_clases = (
+            list(
+                ClaseEntrenamiento.objects.filter(estado='programada', fecha__gte=today)
+                .filter(Q(categoria=player.categoria) | Q(categoria=''))
+                .order_by('fecha', 'hora', 'id')[:5]
+            )
+            if player
+            else []
+        )
+        prestamos_activos = (
+            list(Prestamo.objects.filter(jugador=player, devuelto__isnull=True).select_related('equipo').order_by('-fecha'))
+            if player
+            else []
+        )
+        autorizacion_actual = (
+            Autorizacion.objects.filter(jugador=player).order_by('-fecha', '-id').first()
+            if player
+            else None
+        )
         return render(
             request,
             'seguimiento/student.html',
@@ -161,6 +244,9 @@ def home(request):
                 'chart': chart,
                 'rutinas': routines_list,
                 'justificativos': justificativos_list,
+                'proximas_clases': proximas_clases,
+                'prestamos_activos': prestamos_activos,
+                'autorizacion_actual': autorizacion_actual,
                 'stat_presentes': present_count,
                 'stat_evaluaciones': len(evals_asc),
                 'stat_promedio': avg_general,
@@ -172,9 +258,9 @@ def home(request):
     if 'sesion' in request.GET:
         return pista(request)
 
-    today = timezone.localdate()
     month_start = today.replace(day=1)
     next_month = (month_start + timedelta(days=32)).replace(day=1)
+    sensitive = can_manage_sensitive(request.user)
 
     total_jugadores = Jugador.objects.count()
     raw_cats = dict(Jugador.objects.values_list('categoria').annotate(total=Count('id')))
@@ -211,13 +297,19 @@ def home(request):
         ClaseEntrenamiento.objects.filter(estado='programada', fecha__gte=today).order_by('fecha', 'hora', 'id')[:5]
     )
 
-    pending_docs_qs = Justificativo.objects.filter(estado='pendiente').select_related('evaluacion__jugador', 'evaluacion__clase').order_by('-creado')
-    pending_docs_count = pending_docs_qs.count()
-    pending_docs = list(pending_docs_qs[:5])
+    if sensitive:
+        pending_docs_qs = Justificativo.objects.filter(estado='pendiente').select_related('evaluacion__jugador', 'evaluacion__clase').order_by('-creado')
+        pending_docs_count = pending_docs_qs.count()
+        pending_docs = list(pending_docs_qs[:5])
 
-    pending_auth_qs = Autorizacion.objects.filter(estado='pendiente').select_related('jugador').order_by('-creado')
-    pending_auth_count = pending_auth_qs.count()
-    pending_auths = list(pending_auth_qs[:5])
+        pending_auth_qs = Autorizacion.objects.filter(estado='pendiente').select_related('jugador').order_by('-creado')
+        pending_auth_count = pending_auth_qs.count()
+        pending_auths = list(pending_auth_qs[:5])
+    else:
+        pending_docs_count = 0
+        pending_docs = []
+        pending_auth_count = 0
+        pending_auths = []
 
     active_loans_qs = Prestamo.objects.filter(devuelto__isnull=True).select_related('equipo', 'jugador').order_by('-fecha')
     active_loans_count = active_loans_qs.count()
@@ -245,7 +337,7 @@ def home(request):
         pct = round((val / att_total) * 100) if att_total else 0
         attendance_stats.append({'code': code, 'label': label, 'count': val, 'pct': pct, 'style': css_class})
 
-    recent_audit = list(Auditoria.objects.select_related('usuario').order_by('-fecha')[:6])
+    recent_audit = list(Auditoria.objects.select_related('usuario').order_by('-fecha')[:6]) if sensitive else []
 
     return render(
         request,
@@ -327,11 +419,8 @@ def players(request):
     rows = list(_filtered_players(q, categoria))
     ruts = [p.rut for p in rows]
     account_ruts = set(User.objects.filter(username__in=ruts).values_list('username', flat=True)) if ruts else set()
-    auth_by_player = {}
-    if rows:
-        for auth in Autorizacion.objects.filter(jugador__in=rows).order_by('-fecha', '-id'):
-            if auth.jugador_id not in auth_by_player:
-                auth_by_player[auth.jugador_id] = auth
+    sensitive = can_manage_sensitive(request.user)
+    auth_by_player = _latest_auth_map(rows) if sensitive else {}
     for p in rows:
         p.tiene_cuenta = p.rut in account_ruts
         p.ultima_autorizacion = auth_by_player.get(p.pk)
@@ -347,18 +436,14 @@ def players(request):
     )
 
 
-@coach
+@coach_titular
 def export_players_csv(request):
     q = request.GET.get('q', '').strip()
     categoria = request.GET.get('categoria', '').strip()
     rows = list(_filtered_players(q, categoria))
     ruts = [p.rut for p in rows]
     account_ruts = set(User.objects.filter(username__in=ruts).values_list('username', flat=True)) if ruts else set()
-    auth_by_player = {}
-    if rows:
-        for auth in Autorizacion.objects.filter(jugador__in=rows).order_by('-fecha', '-id'):
-            if auth.jugador_id not in auth_by_player:
-                auth_by_player[auth.jugador_id] = auth.get_estado_display()
+    auth_by_player = _latest_auth_map(rows)
 
     response = HttpResponse(content_type='text/csv; charset=utf-8')
     response['Content-Disposition'] = 'attachment; filename="Huachipato-jugadores.csv"'
@@ -367,6 +452,7 @@ def export_players_csv(request):
     writer = csv.writer(response)
     writer.writerow(['RUT', 'Nombre completo', 'Categoría', 'Fecha nacimiento', 'Contacto emergencia', 'Acceso portal', 'Autorización'])
     for p in rows:
+        auth = auth_by_player.get(p.pk)
         writer.writerow([
             _csv_safe(p.rut),
             _csv_safe(p.nombre_completo),
@@ -374,13 +460,13 @@ def export_players_csv(request):
             _csv_safe(p.fecha_nacimiento.isoformat()),
             _csv_safe(p.contacto_emergencia),
             'Activa' if p.rut in account_ruts else 'Sin cuenta',
-            _csv_safe(auth_by_player.get(p.pk, 'Sin registro')),
+            _csv_safe(auth.get_estado_display() if auth else 'Sin registro'),
         ])
     log(request, f'Exportó nómina de jugadores CSV ({len(rows)} registros)')
     return response
 
 
-@coach
+@coach_titular
 def player_edit(request, pk=None):
     instance = get_object_or_404(Jugador, pk=pk) if pk else None
     old_rut = instance.rut if instance else None
@@ -418,7 +504,7 @@ def player_edit(request, pk=None):
     )
 
 
-@coach
+@coach_titular
 @require_POST
 def player_access(request, pk):
     player = get_object_or_404(Jugador, pk=pk)
@@ -448,6 +534,7 @@ def history(request, pk):
         for e in evaluations
         if e.asistencia in ('P', 'T') and e.clase.estado == 'realizada'
     ]
+    sensitive = can_manage_sensitive(request.user)
     return render(
         request,
         'seguimiento/history.html',
@@ -457,6 +544,8 @@ def history(request, pk):
             'chart': chart,
             'rutinas': Rutina.objects.filter(jugador=player).order_by('-fecha'),
             'tiene_cuenta': User.objects.filter(username=player.rut).exists(),
+            'autorizacion_actual': Autorizacion.objects.filter(jugador=player).order_by('-fecha', '-id').first() if sensitive else None,
+            'current_month': timezone.localdate().strftime('%Y-%m'),
         },
     )
 
@@ -470,14 +559,15 @@ class DocumentForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
         self.fields['evaluacion'].queryset = Evaluacion.objects.filter(asistencia__in=['A', 'T']).select_related('jugador', 'clase')
         self.fields['evaluacion'].label_from_instance = lambda e: f'{e.jugador.nombre_completo} · {e.clase.fecha} · sesión {e.clase_id}'
+        self.fields['archivo'].label = 'Documento respaldo (PDF o JPG, máx. 4 MB)'
 
     def clean_archivo(self):
         file = self.cleaned_data['archivo']
         head = file.read(8)
         file.seek(0)
         ext = file.name.lower().rsplit('.', 1)[-1]
-        if file.size > 10 * 1024 * 1024 or not ((ext == 'pdf' and head.startswith(b'%PDF-')) or (ext in ('jpg', 'jpeg') and head.startswith(b'\xff\xd8\xff'))):
-            raise forms.ValidationError('Adjunta un PDF o JPG válido de hasta 10 MB.')
+        if file.size > MAX_UPLOAD_BYTES or not ((ext == 'pdf' and head.startswith(b'%PDF-')) or (ext in ('jpg', 'jpeg') and head.startswith(b'\xff\xd8\xff'))):
+            raise forms.ValidationError('Adjunta un PDF o JPG válido de hasta 4 MB.')
         return file
 
 
@@ -488,7 +578,7 @@ class StudentDocumentForm(forms.ModelForm):
         labels = {
             'evaluacion': 'Entrenamiento con ausencia o atraso',
             'motivo': 'Motivo',
-            'archivo': 'Respaldo PDF o JPG (máx. 10 MB)',
+            'archivo': 'Respaldo PDF o JPG (máx. 4 MB)',
         }
 
     def __init__(self, player, *args, **kwargs):
@@ -502,11 +592,11 @@ class StudentDocumentForm(forms.ModelForm):
         return DocumentForm.clean_archivo(self)
 
 
-@coach
+@coach_titular
 def documents(request):
     q = request.GET.get('q', '').strip()
     estado = request.GET.get('estado', '').strip()
-    qs = Justificativo.objects.select_related('evaluacion__jugador', 'evaluacion__clase').order_by('-creado')
+    qs = Justificativo.objects.select_related('evaluacion__jugador', 'evaluacion__clase', 'revisado_por').order_by('-creado')
     if q:
         qs = qs.filter(
             Q(evaluacion__jugador__nombre_completo__icontains=q)
@@ -527,11 +617,13 @@ def documents(request):
     )
 
 
-@coach
+@coach_titular
 def document_add(request):
     form = DocumentForm(request.POST or None, request.FILES or None)
     if request.method == 'POST' and form.is_valid():
-        obj = form.save()
+        obj = form.save(commit=False)
+        obj.hash_documento = _sha256_file(form.cleaned_data['archivo'])
+        obj.save()
         log(request, f'Cargó justificativo {obj.pk}')
         messages.success(request, 'Justificativo adjuntado correctamente.')
         return redirect('justificativos')
@@ -541,7 +633,7 @@ def document_add(request):
         {
             'form': form,
             'titulo': 'Adjuntar justificativo',
-            'ayuda': 'Selecciona una asistencia registrada como ausente o atraso. Al aprobar se marcará Ausente justificado.',
+            'ayuda': 'Selecciona una asistencia registrada como ausente o atraso (PDF o JPG, hasta 4 MB). Al aprobar se marcará Ausente justificado.',
             'cancel_url': reverse('justificativos'),
         },
     )
@@ -561,6 +653,7 @@ def student_document_add(request):
     if request.method == 'POST' and form.is_valid():
         obj = form.save(commit=False)
         obj.estado = 'pendiente'
+        obj.hash_documento = _sha256_file(form.cleaned_data['archivo'])
         obj.save()
         log(request, f'Deportista cargó justificativo {obj.pk}')
         messages.success(request, 'Justificativo enviado. Quedó pendiente de revisión por el entrenador.')
@@ -571,28 +664,32 @@ def student_document_add(request):
         {
             'form': form,
             'titulo': 'Enviar justificativo',
-            'ayuda': 'Adjunta un certificado o respaldo en PDF o JPG (hasta 10 MB). El cuerpo técnico lo revisará antes de justificar la inasistencia.',
+            'ayuda': 'Adjunta un certificado o respaldo en PDF o JPG (hasta 4 MB). El cuerpo técnico lo revisará antes de justificar la inasistencia.',
             'cancel_url': reverse('panel_entrenador'),
         },
     )
 
 
-@coach
+@coach_titular
 def document_file(request, pk):
     doc = get_object_or_404(Justificativo, pk=pk)
+    log(request, f'Descargó justificativo {pk}')
     return FileResponse(doc.archivo.open('rb'), as_attachment=True, filename=f'justificativo-{pk}.{doc.archivo.name.rsplit(".", 1)[-1]}')
 
 
-@coach
+@coach_titular
 @require_POST
 def document_review(request, pk):
     decision = request.POST.get('estado')
     if decision not in ('aprobado', 'rechazado'):
         raise PermissionDenied
+    obs = request.POST.get('observacion_revision', '').strip()[:250]
     with transaction.atomic():
         doc = get_object_or_404(Justificativo.objects.select_for_update(), pk=pk)
         if doc.estado == 'pendiente':
             doc.estado = decision
+            doc.revisado_por = request.user
+            doc.observacion_revision = obs
             doc.save()
             if decision == 'aprobado':
                 Evaluacion.objects.filter(pk=doc.evaluacion_id).update(asistencia='J', nota_frenado=0, nota_pase=0, nota_tiro=0)
@@ -603,16 +700,41 @@ def document_review(request, pk):
 
 @coach
 def inventory(request):
+    q = request.GET.get('q', '').strip()
+    pendientes = request.GET.get('pendientes', '').strip()
     active = {p.equipo_id: p for p in Prestamo.objects.filter(devuelto__isnull=True).select_related('jugador')}
-    rows = [(e, active.get(e.pk)) for e in Equipo.objects.order_by('codigo') if not request.GET.get('pendientes') or e.pk in active]
+    equipments = Equipo.objects.order_by('codigo')
+    rows = []
+    q_low = q.lower()
+    for e in equipments:
+        p = active.get(e.pk)
+        if pendientes and not p:
+            continue
+        if q_low:
+            haystack = f'{e.codigo} {e.nombre} {p.jugador.nombre_completo if p else ""}'.lower()
+            if q_low not in haystack:
+                continue
+        rows.append((e, p))
+    prestamos_qs = Prestamo.objects.select_related('jugador', 'equipo').order_by('-fecha')
+    if q:
+        prestamos_qs = prestamos_qs.filter(
+            Q(equipo__codigo__icontains=q)
+            | Q(equipo__nombre__icontains=q)
+            | Q(jugador__nombre_completo__icontains=q)
+        )
     return render(
         request,
         'seguimiento/inventory.html',
-        {'filas': rows, 'prestamos': Prestamo.objects.select_related('jugador', 'equipo').order_by('-fecha')[:100]},
+        {
+            'filas': rows,
+            'prestamos': prestamos_qs[:100],
+            'q': q,
+            'pendientes': pendientes,
+        },
     )
 
 
-@coach
+@coach_titular
 def equipment_edit(request, pk=None):
     Form = forms.modelform_factory(Equipo, fields=['codigo', 'nombre', 'estado'])
     form = Form(request.POST or None, instance=get_object_or_404(Equipo, pk=pk) if pk else None)
@@ -665,9 +787,15 @@ def loan(request, pk):
 @coach
 @require_POST
 def return_loan(request, pk):
-    if Prestamo.objects.filter(pk=pk, devuelto__isnull=True).update(devuelto=timezone.now()):
-        log(request, f'Devolvió préstamo {pk}')
-        messages.success(request, 'Devolución de equipamiento registrada.')
+    loan_obj = get_object_or_404(Prestamo.objects.select_related('equipo'), pk=pk)
+    new_state = request.POST.get('estado_equipo', '').strip()
+    with transaction.atomic():
+        updated = Prestamo.objects.filter(pk=pk, devuelto__isnull=True).update(devuelto=timezone.now())
+        if updated:
+            if new_state in ('bueno', 'desgastado', 'reparacion') and new_state != loan_obj.equipo.estado:
+                Equipo.objects.filter(pk=loan_obj.equipo_id).update(estado=new_state)
+            log(request, f'Devolvió préstamo {pk}')
+            messages.success(request, 'Devolución de equipamiento registrada.')
     return redirect('inventario')
 
 
@@ -736,7 +864,7 @@ def student_complete_routine(request, pk):
     return redirect('panel_entrenador')
 
 
-@coach
+@coach_titular
 def audit_log(request):
     q = request.GET.get('q', '').strip()
     usuario_id = request.GET.get('usuario', '').strip()
@@ -755,6 +883,116 @@ def audit_log(request):
             'usuarios': User.objects.filter(auditoria__isnull=False).distinct().order_by('username'),
         },
     )
+
+
+class StaffMemberForm(forms.Form):
+    username = forms.CharField(max_length=150, label='Usuario de acceso', help_text='Sin espacios (ej: waldo.rivas o RUT).')
+    nombre = forms.CharField(max_length=150, label='Nombre visible')
+    rol = forms.ChoiceField(choices=STAFF_ROLES, label='Rol en el club')
+
+    def clean_username(self):
+        uname = (self.cleaned_data.get('username') or '').strip()
+        if not uname or ' ' in uname:
+            raise forms.ValidationError('Ingresa un nombre de usuario válido sin espacios.')
+        if User.objects.filter(username__iexact=uname).exists():
+            raise forms.ValidationError('Ya existe una cuenta registrada con ese nombre de usuario.')
+        return uname
+
+
+@club_admin
+def staff_list(request):
+    form = StaffMemberForm(request.POST or None)
+    if request.method == 'POST' and form.is_valid():
+        alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'
+        raw_password = 'Cdh#' + ''.join(secrets.choice(alphabet) for _ in range(7))
+        with transaction.atomic():
+            u = User.objects.create_user(
+                username=form.cleaned_data['username'],
+                password=raw_password,
+                first_name=form.cleaned_data['nombre'],
+                is_staff=True,
+                is_active=True,
+            )
+            assign_staff_role(u, form.cleaned_data['rol'])
+            log(request, f'Creó cuenta técnica {u.username} ({form.cleaned_data["rol"]})')
+        messages.success(
+            request,
+            f'Cuenta creada — Usuario: {u.username} · Rol: {get_user_role(u)} · Contraseña temporal: {raw_password}',
+        )
+        return redirect('equipo_tecnico')
+
+    staff_users = list(User.objects.filter(is_staff=True).prefetch_related('groups').order_by('-is_superuser', 'username'))
+    for u in staff_users:
+        u.rol_actual = get_user_role(u)
+    return render(
+        request,
+        'seguimiento/staff.html',
+        {
+            'form': form,
+            'staff_users': staff_users,
+            'roles': STAFF_ROLES,
+        },
+    )
+
+
+@club_admin
+@require_POST
+def staff_manage(request, pk):
+    target = get_object_or_404(User, pk=pk, is_staff=True)
+    if target.is_superuser and not request.user.is_superuser:
+        raise PermissionDenied
+    action = request.POST.get('action', '')
+    if action == 'role':
+        new_role = request.POST.get('rol', '')
+        if new_role not in VALID_STAFF_ROLE_CODES:
+            messages.error(request, 'Rol seleccionado no válido.')
+            return redirect('equipo_tecnico')
+        if target.is_superuser:
+            messages.warning(request, 'Las cuentas superusuario siempre mantienen el rol Administrador.')
+        else:
+            assign_staff_role(target, new_role)
+            log(request, f'Actualizó rol de {target.username} a {new_role}')
+            messages.success(request, f'Rol de {target.username} actualizado a {new_role}.')
+    elif action == 'toggle':
+        if target.pk == request.user.pk or target.is_superuser:
+            messages.warning(request, 'No puedes desactivar tu propia cuenta ni una cuenta superusuario.')
+        else:
+            target.is_active = not target.is_active
+            target.save(update_fields=['is_active'])
+            estado_txt = 'activada' if target.is_active else 'desactivada'
+            log(request, f'Cuenta técnica {target.username} {estado_txt}')
+            messages.success(request, f'Cuenta {target.username} {estado_txt}.')
+    elif action == 'reset':
+        if target.is_superuser and target.pk != request.user.pk:
+            raise PermissionDenied
+        alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'
+        raw_password = 'Cdh#' + ''.join(secrets.choice(alphabet) for _ in range(7))
+        target.set_password(raw_password)
+        target.save(update_fields=['password'])
+        log(request, f'Restableció clave de cuenta técnica {target.username}')
+        messages.success(request, f'Nueva contraseña temporal para {target.username}: {raw_password}')
+    return redirect('equipo_tecnico')
+
+
+def manifest_json(request):
+    icon_url = static('seguimiento/img/cdh-icon.svg')
+    payload = {
+        'name': 'CD Huachipato · Seguimiento Deportivo',
+        'short_name': 'CDH Hockey',
+        'start_url': '/',
+        'display': 'standalone',
+        'background_color': '#f1f5f9',
+        'theme_color': '#0c2d57',
+        'icons': [
+            {
+                'src': icon_url,
+                'sizes': 'any',
+                'type': 'image/svg+xml',
+                'purpose': 'any',
+            }
+        ],
+    }
+    return HttpResponse(json.dumps(payload, ensure_ascii=False), content_type='application/manifest+json; charset=utf-8')
 
 
 def registration_closed(request):

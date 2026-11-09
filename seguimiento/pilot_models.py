@@ -13,6 +13,15 @@ class Justificativo(models.Model):
     archivo = models.FileField(upload_to=document_path)
     motivo = models.CharField(max_length=250)
     estado = models.CharField(max_length=12, default='pendiente', choices=[('pendiente', 'Pendiente'), ('aprobado', 'Aprobado'), ('rechazado', 'Rechazado')])
+    observacion_revision = models.CharField(max_length=250, blank=True, default='')
+    revisado_por = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name='justificativos_revisados',
+    )
+    hash_documento = models.CharField(max_length=64, blank=True, default='')
     creado = models.DateTimeField(auto_now_add=True)
 
 
@@ -58,4 +67,6 @@ class Autorizacion(models.Model):
     responsable = models.CharField(max_length=150)
     estado = models.CharField(max_length=12, choices=[('pendiente', 'Pendiente de revisión'), ('vigente', 'Vigente'), ('revocada', 'Revocada')], default='pendiente')
     archivo = models.FileField(upload_to=document_path)
+    hash_documento = models.CharField(max_length=64, blank=True, default='')
+    ip_registro = models.GenericIPAddressField(null=True, blank=True)
     creado = models.DateTimeField(auto_now_add=True)

@@ -1,18 +1,12 @@
-# Recorrido para presentar al profesor
+# Recorrido de demostración — CD Huachipato
 
-La copia local ya tiene los datos ficticios cargados. Busca DEMO en los jugadores. Ningún documento de ejemplo tiene validez médica ni acredita una autorización real.
+Este guion aplica sobre un entorno local aislado con datos ficticios (`LOCAL_SQLITE=1` + `manage.py cargar_demo`). Ningún archivo de ejemplo tiene validez médica ni legal real.
 
-1. **Jugadores:** buscar Martina Lagos [DEMO], abrir su ficha e historial. Mostrar las categorías Escuelita, Sub-15 y Adulta.
-2. **Calendario:** seleccionar octubre de 2026. La carga del 13 de octubre incluye clases realizadas los días 7, 10 y 13; programadas los días 14 y 17; y canceladas el día 15. Cada fecha tiene clases de las tres categorías, a las 17:00, 18:00 y 19:00.
-3. **Evaluación en pista:** abrir una clase Realizada del día 13. Mostrar presentes, atrasos, ausentes y justificados. Cambiar una nota, esperar Guardado y recargar. Abrir una observación privada y explicar que solo la ve el personal autorizado.
-4. **Rutinas:** elegir una que contenga DEMO-RECORRIDO. Hay pendientes para el día 14 y completadas del día 12. Marcar una pendiente como completada y añadir una observación.
-5. **Inventario:** buscar los equipos con código RECORRIDO. Los terminados en 1 y 2 están disponibles; el 3 está prestado; el 4 tiene una devolución registrada; el 5 está desgastado y el 6 en reparación. Probar un préstamo y una devolución.
-6. **Justificativos:** abrir un pendiente de demostración, descargar el JPG ficticio y aprobarlo. Mostrar el cambio de asistencia. Esta aprobación no se revierte desde la interfaz.
-7. **Autorizaciones:** mostrar ejemplos Pendiente, Vigente y Revocada. Abrir un archivo ficticio y editar el responsable o estado.
-8. **Reportes:** seleccionar octubre de 2026 y un jugador o categoría. Descargar el PDF y mostrar asistencia, notas y evolución. Las observaciones privadas no se exportan y las ausencias no se promedian como ceros.
-
-Las modificaciones de la presentación se conservan. Repetir `cargar_demo` el mismo día no reinicia ni duplica estos escenarios. Ejecutarlo otro día añade un nuevo recorrido con fechas relativas a ese día.
-
-## En otro computador
-
-Seguir COMPARTIR.md: extraer el ZIP, iniciar la aplicación, ejecutar `cargar_demo` y crear una cuenta propia. El ZIP no contiene la base de datos ni las cuentas de esta copia local. Las fechas del nuevo recorrido se calculan según el día de la carga.
+1. **Dashboard (`/`) y RBAC:** mostrar los KPIs del club, el menú lateral limpio y la sección **Equipo técnico (`/equipo-tecnico/`)** para diferenciar permisos entre `Administrador`, `Entrenador` y `Asistente`.
+2. **Plantilla de jugadores (`/jugadores/`):** filtrar por categoría (`Escuelita`, `Sub-15`, `Adulta`) o buscar un jugador `[DEMO]`. Mostrar validación de RUT chileno Módulo 11, estado de autorización/portal y exportación CSV.
+3. **Calendario (`/calendario/`):** alternar vistas **Mes**, **Semana** y **Listado**. Crear una clase usando **repetición semanal** (ej. 3 semanas) y verificar cómo se programan automáticamente.
+4. **Evaluación en pista (`/pista/`):** abrir una sesión `Realizada`, mostrar alertas de autorización, marcar asistencia (`Presente`, `Atraso`, `Ausente`), asignar notas `1–10` y agregar una **observación privada**. Comprobar el guardado automático y el banner de **cola offline local** en caso de desconexión.
+5. **Evolución e informes (`/jugadores/<id>/` y `/reportes/`):** revisar el gráfico interactivo (tocar un punto para ver el detalle), usar el atajo **Informe PDF del mes** y comprobar que `observacion_privada` nunca aparece en PDF/CSV ni en el portal alumno.
+6. **Justificativos y Autorizaciones (`/justificativos/`, `/autorizaciones/`):** revisar un justificativo pendiente con nota de revisión, comprobar su **huella SHA-256** (límite 4 MB) y verificar cómo una aprobación cambia automáticamente la asistencia a `Ausente justificado`.
+7. **Inventario del club (`/inventario/`):** buscar por código o nombre, registrar un préstamo y luego registrar la devolución actualizando el estado de conservación del equipo.
+8. **Portal del deportista (`/` como alumno):** iniciar sesión con el RUT de un jugador demo (sin puntos ni guión), ver su gráfico personal, **próximos entrenamientos**, **préstamos activos**, **estado de autorización**, completar una rutina y enviar un justificativo.

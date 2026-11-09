@@ -9,7 +9,9 @@
     <div class="quick-actions">
       <a class="button" href="{% url 'pista' %}">Evaluación en pista</a>
       <a class="button button-secondary" href="{% url 'programar_clase' %}">+ Programar clase</a>
-      <a class="button button-secondary" href="{% url 'agregar_jugador' %}">+ Agregar jugador</a>
+      {% if nav_can_sensitive %}
+        <a class="button button-secondary" href="{% url 'agregar_jugador' %}">+ Agregar jugador</a>
+      {% endif %}
       <a class="button button-secondary" href="{% url 'reportes' %}">Reportes mensuales</a>
     </div>
   </div>
@@ -39,16 +41,18 @@
       <div class="kpi-meta">{{ clases_programadas }} programadas · {{ clases_canceladas }} canceladas</div>
     </a>
 
-    <a class="kpi-card {% if pending_total %}kpi-card-alert{% endif %}" href="{% url 'justificativos' %}">
-      <div class="kpi-top">
-        <span class="kpi-label">Pendientes por revisar</span>
-        <span class="kpi-icon kpi-icon-warning" aria-hidden="true">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-        </span>
-      </div>
-      <div class="kpi-value">{{ pending_total }}</div>
-      <div class="kpi-meta">{{ pending_docs_count }} justificativos · {{ pending_auth_count }} autorizaciones</div>
-    </a>
+    {% if nav_can_sensitive %}
+      <a class="kpi-card {% if pending_total %}kpi-card-alert{% endif %}" href="{% url 'justificativos' %}">
+        <div class="kpi-top">
+          <span class="kpi-label">Pendientes por revisar</span>
+          <span class="kpi-icon kpi-icon-warning" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+          </span>
+        </div>
+        <div class="kpi-value">{{ pending_total }}</div>
+        <div class="kpi-meta">{{ pending_docs_count }} justificativos · {{ pending_auth_count }} autorizaciones</div>
+      </a>
+    {% endif %}
 
     <a class="kpi-card" href="{% url 'inventario' %}?pendientes=1">
       <div class="kpi-top">
@@ -146,49 +150,51 @@
     </div>
 
     <div>
-      <section class="card">
-        <div class="card-header">
-          <h2>Justificativos pendientes</h2>
-          <a href="{% url 'justificativos' %}">Ver todos</a>
-        </div>
-        {% if pending_docs %}
-          <div class="item-list">
-            {% for d in pending_docs %}
-              <div class="item-row">
-                <div>
-                  <span class="item-title">{{ d.evaluacion.jugador.nombre_completo }}</span>
-                  <small>{{ d.evaluacion.clase.fecha }} · {{ d.motivo|truncatechars:45 }}</small>
-                </div>
-                <a class="button button-secondary button-sm" href="{% url 'justificativos' %}">Revisar</a>
-              </div>
-            {% endfor %}
+      {% if nav_can_sensitive %}
+        <section class="card">
+          <div class="card-header">
+            <h2>Justificativos pendientes</h2>
+            <a href="{% url 'justificativos' %}">Ver todos</a>
           </div>
-        {% else %}
-          <p class="muted">No hay justificativos pendientes de revisión.</p>
-        {% endif %}
-      </section>
+          {% if pending_docs %}
+            <div class="item-list">
+              {% for d in pending_docs %}
+                <div class="item-row">
+                  <div>
+                    <span class="item-title">{{ d.evaluacion.jugador.nombre_completo }}</span>
+                    <small>{{ d.evaluacion.clase.fecha }} · {{ d.motivo|truncatechars:45 }}</small>
+                  </div>
+                  <a class="button button-secondary button-sm" href="{% url 'justificativos' %}">Revisar</a>
+                </div>
+              {% endfor %}
+            </div>
+          {% else %}
+            <p class="muted">No hay justificativos pendientes de revisión.</p>
+          {% endif %}
+        </section>
 
-      <section class="card">
-        <div class="card-header">
-          <h2>Autorizaciones por revisar</h2>
-          <a href="{% url 'autorizaciones' %}">Ver todas</a>
-        </div>
-        {% if pending_auths %}
-          <div class="item-list">
-            {% for a in pending_auths %}
-              <div class="item-row">
-                <div>
-                  <span class="item-title">{{ a.jugador.nombre_completo }}</span>
-                  <small>Apoderado: {{ a.apoderado }} · {{ a.fecha }}</small>
-                </div>
-                <a class="button button-secondary button-sm" href="{% url 'editar_autorizacion' a.pk %}">Revisar</a>
-              </div>
-            {% endfor %}
+        <section class="card">
+          <div class="card-header">
+            <h2>Autorizaciones por revisar</h2>
+            <a href="{% url 'autorizaciones' %}">Ver todas</a>
           </div>
-        {% else %}
-          <p class="muted">Todas las autorizaciones registradas están revisadas.</p>
-        {% endif %}
-      </section>
+          {% if pending_auths %}
+            <div class="item-list">
+              {% for a in pending_auths %}
+                <div class="item-row">
+                  <div>
+                    <span class="item-title">{{ a.jugador.nombre_completo }}</span>
+                    <small>Apoderado: {{ a.apoderado }} · {{ a.fecha }}</small>
+                  </div>
+                  <a class="button button-secondary button-sm" href="{% url 'editar_autorizacion' a.pk %}">Revisar</a>
+                </div>
+              {% endfor %}
+            </div>
+          {% else %}
+            <p class="muted">Todas las autorizaciones registradas están revisadas.</p>
+          {% endif %}
+        </section>
+      {% endif %}
 
       <section class="card">
         <div class="card-header">

@@ -10,10 +10,19 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.urls import reverse
 from django.utils import timezone
 from .models import ClaseEntrenamiento, Evaluacion, Jugador, Autorizacion
-from .pilot_views import coach, log, DocumentForm, _csv_safe
+from .pilot_views import coach, coach_titular, log, DocumentForm, _csv_safe, _sha256_file, _client_ip
 
 
 class SessionForm(forms.ModelForm):
+    semanas = forms.IntegerField(
+        min_value=1,
+        max_value=12,
+        initial=1,
+        required=False,
+        label='Repetir semanalmente (cantidad de clases)',
+        help_text='Deja en 1 para crear solo esta fecha, o elige entre 2 y 12 semanas seguidas en el mismo horario.',
+    )
+
     class Meta:
         model = ClaseEntrenamiento
         fields = ['fecha', 'hora', 'categoria', 'profesor', 'objetivo', 'estado']
@@ -25,11 +34,16 @@ class SessionForm(forms.ModelForm):
         for key in ['hora', 'categoria', 'objetivo']:
             self.fields[key].required = True
         self.original = ClaseEntrenamiento.objects.filter(pk=self.instance.pk).first() if self.instance.pk else None
+        if self.original:
+            self.fields.pop('semanas', None)
 
     def clean(self):
         data = super().clean()
+        semanas = data.get('semanas') or 1
         if data.get('estado') == 'realizada' and data.get('fecha') and data['fecha'] > timezone.localdate():
             self.add_error('estado', 'Una clase futura no puede marcarse realizada.')
+        if not self.original and semanas > 1 and data.get('estado') == 'realizada':
+            self.add_error('semanas', 'Para programar múltiples semanas seguidas, deja el estado en Programada.')
         if self.original and self.original.evaluacion_set.exists():
             if data.get('fecha') != self.original.fecha or data.get('categoria') != self.original.categoria:
                 raise forms.ValidationError('Esta clase ya tiene registros. Conserva su fecha y categoría para proteger el historial; puedes cancelarla.')
@@ -50,10 +64,25 @@ def session_edit(request, pk=None):
     if instance and not instance.categoria:
         form.fields['categoria'].required = False
     if request.method == 'POST' and form.is_valid():
+        semanas = (form.cleaned_data.get('semanas') or 1) if not instance else 1
         with transaction.atomic():
             obj = form.save()
             log(request, f'Guardó clase {obj.pk}: {obj.estado}')
-        messages.success(request, 'Clase guardada. Las cancelaciones conservan su historial.')
+            if not instance and semanas > 1:
+                for step in range(1, semanas):
+                    extra = ClaseEntrenamiento.objects.create(
+                        fecha=obj.fecha + timedelta(days=7 * step),
+                        hora=obj.hora,
+                        categoria=obj.categoria,
+                        profesor=obj.profesor,
+                        objetivo=obj.objetivo,
+                        estado=obj.estado,
+                    )
+                    log(request, f'Programó clase periódica {extra.pk}')
+        if not instance and semanas > 1:
+            messages.success(request, f'Se programaron {semanas} entrenamientos semanales a partir del {obj.fecha}.')
+        else:
+            messages.success(request, 'Clase guardada. Las cancelaciones conservan su historial.')
         return redirect('/calendario/?fecha=' + obj.fecha.isoformat())
     return render(
         request,
@@ -61,7 +90,7 @@ def session_edit(request, pk=None):
         {
             'form': form,
             'titulo': 'Editar clase' if pk else 'Programar clase',
-            'ayuda': 'Las clases se programan manualmente. Marca Realizada cuando se imparta; Cancelada conserva los registros y excluye sus notas de los promedios.',
+            'ayuda': 'Programa una clase individual o repítela semanalmente hasta 12 fechas. Marca Realizada al impartirla; Cancelada conserva los registros y los excluye de promedios.',
             'cancel_url': reverse('calendario'),
         },
     )
@@ -155,7 +184,7 @@ class AuthorizationForm(forms.ModelForm):
     class Meta:
         model = Autorizacion
         fields = ['jugador', 'apoderado', 'fecha', 'responsable', 'estado', 'archivo']
-        labels = {'fecha': 'Fecha de autorización', 'responsable': 'Responsable del registro', 'archivo': 'Documento firmado PDF o JPG'}
+        labels = {'fecha': 'Fecha de autorización', 'responsable': 'Responsable del registro', 'archivo': 'Documento firmado PDF o JPG (máx. 4 MB)'}
         widgets = {'fecha': forms.DateInput(format='%Y-%m-%d', attrs={'type': 'date'})}
 
     def clean_archivo(self):
@@ -171,7 +200,7 @@ class AuthorizationForm(forms.ModelForm):
         return day
 
 
-@coach
+@coach_titular
 def authorizations(request):
     q = request.GET.get('q', '').strip()
     estado = request.GET.get('estado', '').strip()
@@ -196,9 +225,10 @@ def authorizations(request):
     )
 
 
-@coach
+@coach_titular
 def authorization_edit(request, pk=None):
     instance = get_object_or_404(Autorizacion, pk=pk) if pk else None
+    old_file_name = instance.archivo.name if instance and instance.archivo else None
     form = AuthorizationForm(
         request.POST if request.method == 'POST' else None,
         request.FILES or None,
@@ -206,7 +236,17 @@ def authorization_edit(request, pk=None):
         initial=({'fecha': timezone.localdate(), 'responsable': request.user.get_full_name() or request.user.username} if not instance else {}),
     )
     if request.method == 'POST' and form.is_valid():
-        obj = form.save()
+        obj = form.save(commit=False)
+        if 'archivo' in form.changed_data:
+            obj.hash_documento = _sha256_file(form.cleaned_data['archivo'])
+        if not instance or 'archivo' in form.changed_data:
+            obj.ip_registro = _client_ip(request)
+        obj.save()
+        if 'archivo' in form.changed_data and old_file_name and old_file_name != obj.archivo.name:
+            try:
+                obj.archivo.storage.delete(old_file_name)
+            except Exception:
+                pass
         log(request, f'Guardó autorización {obj.pk}: {obj.estado}')
         messages.success(request, f'Autorización de {obj.jugador.nombre_completo} guardada ({obj.get_estado_display()}).')
         return redirect('autorizaciones')
@@ -216,13 +256,13 @@ def authorization_edit(request, pk=None):
         {
             'form': form,
             'titulo': 'Autorización de apoderado',
-            'ayuda': 'Registro documental restringido al personal. Adjunta PDF o JPG de hasta 10 MB. Un estado Vigente requiere revisión del documento; el sistema no verifica firmas ni certifica cumplimiento legal.',
+            'ayuda': 'Registro documental restringido al cuerpo técnico titular. Adjunta PDF o JPG de hasta 4 MB. Al subir el archivo se calcula su huella SHA-256 de integridad.',
             'cancel_url': reverse('autorizaciones'),
         },
     )
 
 
-@coach
+@coach_titular
 def authorization_file(request, pk):
     obj = get_object_or_404(Autorizacion, pk=pk)
     log(request, f'Descargó autorización {pk}')

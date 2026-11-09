@@ -43,7 +43,71 @@
         <div class="kpi-value">{{ stat_rutinas_pendientes }} <small class="muted">pendientes</small></div>
         <div class="kpi-meta">{{ stat_rutinas_completadas }} completadas</div>
       </div>
+
+      <div class="kpi-card">
+        <div class="kpi-top">
+          <span class="kpi-label">Autorización apoderado</span>
+        </div>
+        <div class="kpi-value">
+          {% if autorizacion_actual %}
+            <span class="badge badge-{{ autorizacion_actual.estado }}">{{ autorizacion_actual.get_estado_display }}</span>
+          {% else %}
+            <span class="badge">Sin registro</span>
+          {% endif %}
+        </div>
+        <div class="kpi-meta">
+          {% if autorizacion_actual %}
+            {{ autorizacion_actual.apoderado }} · {{ autorizacion_actual.fecha|date:"d/m/Y" }}
+          {% else %}
+            Consulta con tu entrenador
+          {% endif %}
+        </div>
+      </div>
     </section>
+
+    <div class="dashboard-grid">
+      <section class="card">
+        <div class="card-header">
+          <h2>Próximos entrenamientos</h2>
+        </div>
+        {% if proximas_clases %}
+          <div class="item-list">
+            {% for c in proximas_clases %}
+              <div class="item-row">
+                <div>
+                  <span class="item-title">{{ c.fecha|date:"d/m/Y" }}{% if c.hora %} · {{ c.hora|time:"H:i" }}{% endif %} · {{ c.get_categoria_display|default:"General" }}</span>
+                  <small>{{ c.objetivo|default:"Entrenamiento regular" }} · Prof. {{ c.profesor|default:"Cuerpo técnico" }}</small>
+                </div>
+                <span class="badge badge-{{ c.estado }}">{{ c.get_estado_display }}</span>
+              </div>
+            {% endfor %}
+          </div>
+        {% else %}
+          <p class="muted">No tienes entrenamientos futuros programados por ahora.</p>
+        {% endif %}
+      </section>
+
+      <section class="card">
+        <div class="card-header">
+          <h2>Equipamiento en préstamo</h2>
+        </div>
+        {% if prestamos_activos %}
+          <div class="item-list">
+            {% for pr in prestamos_activos %}
+              <div class="item-row">
+                <div>
+                  <span class="item-title">{{ pr.equipo.nombre }} <small>({{ pr.equipo.codigo }})</small></span>
+                  <small>Prestado el {{ pr.fecha|date:"d/m/Y" }} · Estado equipo: {{ pr.equipo.get_estado_display }}</small>
+                </div>
+                <span class="badge badge-info">Activo</span>
+              </div>
+            {% endfor %}
+          </div>
+        {% else %}
+          <p class="muted">No registras equipamiento del club pendiente de devolución.</p>
+        {% endif %}
+      </section>
+    </div>
 
     <div class="card">
       <div class="card-header">
@@ -51,6 +115,7 @@
         <small>Frenado (azul) · Pase (verde) · Tiro (ámbar) · Escala 1–10</small>
       </div>
       <canvas id="chart" role="img" aria-label="Evolución personal de notas"></canvas>
+      <p id="chart-hover" class="muted chart-hover" aria-live="polite"></p>
       <p id="chart-empty" class="muted"></p>
     </div>
     {{ chart|json_script:'chart-data' }}
@@ -70,7 +135,7 @@
           <tr>
             <th>Entrenamiento</th>
             <th>Motivo</th>
-            <th>Estado</th>
+            <th>Estado y observación</th>
           </tr>
         </thead>
         <tbody>
@@ -78,7 +143,12 @@
             <tr>
               <td>{{ j.evaluacion.clase.fecha }} · sesión #{{ j.evaluacion.clase_id }}</td>
               <td>{{ j.motivo }}</td>
-              <td><span class="badge badge-{{ j.estado }}">{{ j.get_estado_display }}</span></td>
+              <td>
+                <span class="badge badge-{{ j.estado }}">{{ j.get_estado_display }}</span>
+                {% if j.observacion_revision %}
+                  <br><small>{{ j.observacion_revision }}</small>
+                {% endif %}
+              </td>
             </tr>
           {% endfor %}
         </tbody>

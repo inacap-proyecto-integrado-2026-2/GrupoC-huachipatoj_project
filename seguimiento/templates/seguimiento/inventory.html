@@ -7,10 +7,28 @@
       <p class="muted">Control de equipamiento, préstamos y devoluciones.</p>
     </div>
     <div class="quick-actions">
-      <a class="button" href="{% url 'nuevo_equipo' %}">+ Agregar equipo</a>
-      <a class="button button-secondary" href="?pendientes=1">Devoluciones pendientes</a>
+      {% if nav_can_sensitive %}
+        <a class="button" href="{% url 'nuevo_equipo' %}">+ Agregar equipo</a>
+      {% endif %}
+      <a class="button button-secondary" href="?pendientes=1{% if q %}&q={{ q|urlencode }}{% endif %}">Devoluciones pendientes</a>
       <a class="button button-secondary" href="{% url 'inventario' %}">Ver todos</a>
     </div>
+  </div>
+
+  <div class="card">
+    <form class="toolbar" method="get">
+      <label>
+        Buscar equipo o jugador
+        <input name="q" value="{{ q }}" placeholder="Código, equipo o deportista" aria-label="Buscar en inventario">
+      </label>
+      {% if pendientes %}
+        <input type="hidden" name="pendientes" value="1">
+      {% endif %}
+      <button type="submit">Filtrar</button>
+      {% if q or pendientes %}
+        <a class="button button-secondary" href="{% url 'inventario' %}">Limpiar</a>
+      {% endif %}
+    </form>
   </div>
 
   <div class="card table-wrap">
@@ -41,10 +59,17 @@
             </td>
             <td>
               <div class="quick-actions">
-                <a class="button button-secondary button-sm" href="{% url 'editar_equipo' e.pk %}">Editar</a>
+                {% if nav_can_sensitive %}
+                  <a class="button button-secondary button-sm" href="{% url 'editar_equipo' e.pk %}">Editar</a>
+                {% endif %}
                 {% if p %}
-                  <form class="inline" method="post" action="{% url 'devolver' p.pk %}">
+                  <form class="inline-actions" method="post" action="{% url 'devolver' p.pk %}" data-confirm="¿Registrar devolución de {{ e.nombre }} ({{ e.codigo }})?">
                     {% csrf_token %}
+                    <select name="estado_equipo" class="inline-select" aria-label="Estado del equipo al devolver">
+                      <option value="bueno" {% if e.estado == 'bueno' %}selected{% endif %}>Bueno</option>
+                      <option value="desgastado" {% if e.estado == 'desgastado' %}selected{% endif %}>Desgastado</option>
+                      <option value="reparacion" {% if e.estado == 'reparacion' %}selected{% endif %}>En reparación</option>
+                    </select>
                     <button type="submit" class="button-sm button-success">Registrar devolución</button>
                   </form>
                 {% elif e.estado != 'reparacion' %}

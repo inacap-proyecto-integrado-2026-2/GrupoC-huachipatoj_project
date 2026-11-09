@@ -4,7 +4,7 @@
   <div class="page-header">
     <div>
       <h1>Justificativos</h1>
-      <p class="muted">Carga y revisión por el entrenador. Documentos privados PDF o JPG, hasta 10 MB.</p>
+      <p class="muted">Carga y revisión por el entrenador titular. Documentos privados PDF o JPG, hasta 4 MB.</p>
     </div>
     <div class="quick-actions">
       <a class="button" href="{% url 'nuevo_justificativo' %}">+ Adjuntar justificativo</a>
@@ -53,19 +53,26 @@
             <td>
               {{ d.motivo }}<br>
               <a href="{% url 'archivo_justificativo' d.pk %}">Descargar documento</a>
+              {% if d.hash_documento %}
+                · <small class="muted">SHA-256: <code class="hash-code">{{ d.hash_documento|slice:":10" }}</code></small>
+              {% endif %}
             </td>
             <td>
               <span class="badge badge-{{ d.estado }}">{{ d.get_estado_display }}</span>
+              {% if d.observacion_revision %}
+                <br><small>{{ d.observacion_revision }}</small>
+              {% endif %}
             </td>
             <td>
               {% if d.estado == 'pendiente' %}
-                <form class="quick-actions" method="post" action="{% url 'revisar_justificativo' d.pk %}">
+                <form class="inline-actions" method="post" action="{% url 'revisar_justificativo' d.pk %}">
                   {% csrf_token %}
-                  <button type="submit" class="button-sm button-success" name="estado" value="aprobado">Aprobar</button>
-                  <button type="submit" class="button-sm button-danger-outline" name="estado" value="rechazado">Rechazar</button>
+                  <input name="observacion_revision" class="inline-input" maxlength="250" placeholder="Nota opcional" aria-label="Nota opcional de revisión">
+                  <button type="submit" class="button-sm button-success" name="estado" value="aprobado" data-confirm="¿Aprobar este justificativo? La asistencia cambiará a Ausente justificado de forma definitiva.">Aprobar</button>
+                  <button type="submit" class="button-sm button-danger-outline" name="estado" value="rechazado" data-confirm="¿Rechazar este justificativo?">Rechazar</button>
                 </form>
               {% else %}
-                <span class="muted">Revisado</span>
+                <span class="muted">Revisado{% if d.revisado_por %} por {{ d.revisado_por.username }}{% endif %}</span>
               {% endif %}
             </td>
           </tr>

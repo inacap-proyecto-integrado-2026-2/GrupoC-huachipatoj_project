@@ -40,7 +40,14 @@
           <h2>{{ a.jugador.nombre_completo }}</h2>
           <span class="badge badge-{{ a.estado }}">{{ a.get_estado_display }}</span>
         </div>
-        <p><strong>Apoderado:</strong> {{ a.apoderado }}<br><small>Fecha: {{ a.fecha }} · Responsable: {{ a.responsable }}</small></p>
+        <p>
+          <strong>Apoderado:</strong> {{ a.apoderado }}<br>
+          <small>
+            Fecha: {{ a.fecha }} · Responsable: {{ a.responsable }}
+            {% if a.hash_documento %} · SHA-256: <code class="hash-code">{{ a.hash_documento|slice:":12" }}</code>{% endif %}
+            {% if a.ip_registro %} · IP: {{ a.ip_registro }}{% endif %}
+          </small>
+        </p>
         <div class="quick-actions">
           <a class="button button-secondary button-sm" href="{% url 'editar_autorizacion' a.pk %}">Revisar o cambiar estado</a>
           <a class="button button-sm" href="{% url 'archivo_autorizacion' a.pk %}">Descargar documento</a>

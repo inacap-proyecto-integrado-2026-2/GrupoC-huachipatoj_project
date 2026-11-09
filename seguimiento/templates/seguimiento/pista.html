@@ -58,6 +58,11 @@
           {% endif %}
         </div>
       {% endif %}
+
+      <div class="notice notice-warning offline-bar" data-offline-banner hidden role="status">
+        <span><strong>Sin conexión en pista:</strong> tienes <strong data-offline-count>0</strong> evaluación(es) guardadas localmente en este dispositivo.</span>
+        <button type="button" class="button-secondary button-sm" data-sync-queue>Reintentar sincronización</button>
+      </div>
     {% endif %}
   </div>
 
@@ -80,6 +85,13 @@
               <td>
                 <a href="{% url 'historial' p.pk %}"><strong>{{ p.nombre_completo }}</strong></a><br>
                 <small>{{ p.get_categoria_display }}</small>
+                {% if nav_can_sensitive %}
+                  {% if not p.ultima_autorizacion %}
+                    <br><span class="badge badge-warning">Sin autorización</span>
+                  {% elif p.ultima_autorizacion.estado != 'vigente' %}
+                    <br><span class="badge badge-danger">Aut. {{ p.ultima_autorizacion.get_estado_display }}</span>
+                  {% endif %}
+                {% endif %}
               </td>
               <td>
                 <select class="attendance" aria-label="Asistencia de {{ p.nombre_completo }}" {% if e.asistencia == 'J' %}disabled{% endif %}>

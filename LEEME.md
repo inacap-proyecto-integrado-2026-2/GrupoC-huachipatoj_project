@@ -1,50 +1,61 @@
-# Huachipato — versión de prueba local
+# CD Huachipato · Sistema de Seguimiento Deportivo (Hockey en Patines)
 
-## Abrir y ejecutar
-Abre esta carpeta (la que contiene manage.py) en Visual Studio Code. Detén el servidor de la versión anterior con Ctrl+C y ejecuta en PowerShell:
+Aplicación web responsiva (Django 5.2 + PWA instalable) para el cuerpo técnico y deportistas del **Club Deportivo Huachipato — Rama Hockey en Patines**.
+
+---
+
+## Arquitectura actual (Producción y Local)
+
+- **Backend:** Django 5.2.17 (`miproyecto/`, `seguimiento/`) con autenticación dual (usuario técnico o RUT chileno con/sin puntos y guión mediante `RutAuthenticationBackend`) y control de acceso basado en roles (**RBAC**: `Administrador`, `Entrenador`, `Asistente` y `Alumno`).
+- **Base de datos en producción:** PostgreSQL en **Supabase** (`DATABASE_URL` / pooler compatible con Vercel Serverless).
+- **Almacenamiento privado en producción:** **Supabase Storage** (`seguimiento/storage.py`) para respaldos PDF/JPG de justificativos y autorizaciones (sin rutas públicas; descarga auditada vía backend hasta 4 MB por archivo con huella SHA-256).
+- **Despliegue:** **Vercel** (`vercel.json`, `api/wsgi.py`, archivos estáticos con WhiteNoise).
+- **Modo local aislado (`LOCAL_SQLITE=1`):** Forzado por defecto en `INICIAR.cmd` para trabajar con `db.sqlite3` y `private_media/` locales sin tocar la base de datos ni el almacenamiento en la nube.
+
+---
+
+## Ejecutar en Windows (Modo Local Seguro)
 
 ```powershell
 .\INICIAR.cmd
 ```
 
-Requiere Python 3.11 o superior instalado y acceso a Internet para instalar las dependencias. El script crea un entorno .venv propio, instala Django 5.2.17, aplica migraciones e inicia el servidor local. Abre http://127.0.0.1:8000/. La copia de trabajo conserva los usuarios y datos que existían al copiar el proyecto. No se sincronizan los cambios posteriores con Downloads.
-
-Si usas el ZIP de entrega, comienza con una base de datos vacía. Tras el primer inicio crea la cuenta en otra terminal:
+Si ejecutas comandos `manage.py` manualmente en PowerShell y tienes `.env` configurado con Supabase, activa antes la bandera de aislamiento local para no modificar producción por accidente:
 
 ```powershell
+$env:LOCAL_SQLITE = "1"
+.\.venv\Scripts\python.exe manage.py migrate
+.\.venv\Scripts\python.exe manage.py runserver 127.0.0.1:8000
+```
+
+Para inicializar un entorno local limpio con datos ficticios y cuenta de administrador:
+
+```powershell
+$env:LOCAL_SQLITE = "1"
+.\.venv\Scripts\python.exe manage.py cargar_demo
 .\.venv\Scripts\python.exe manage.py createsuperuser
 ```
 
-## Recorrido de prueba con el entrenador
-1. Plantilla jugadores: agregar un jugador, buscarlo y editar su categoría u observaciones.
-2. Evaluación en pista: programar una clase desde Calendario, marcarla Realizada cuando se imparta, seleccionar asistencia y tocar notas. Esperar «Guardado» y recargar para comprobar persistencia. Cero interno se presenta como sin evaluar, no como nota deportiva.
-3. Plantilla jugadores → Ver evolución: consultar tabla y gráfico de habilidades.
-4. Rutinas: asignar ejercicios con fecha, objetivo y dosis; editar para marcar completada y registrar observaciones.
-5. Registrar una ausencia o atraso y luego adjuntar un justificativo PDF/JPG de prueba. Revisarlo y aprobarlo: la asistencia cambia a Ausente justificado.
-6. Inventario: crear patines o stick con código único, prestarlo y registrar devolución. Probar el filtro de devoluciones pendientes y el historial.
+---
 
-## Alcance de esta versión
-Prueba local supervisada. Justificativos solo accesibles al personal autorizado; no hay rutas públicas a los archivos. Entrenadores se identifican mediante is_staff. El administrador crea cuentas desde /admin/; para asociar un alumno, su nombre de usuario debe coincidir exactamente con su RUT registrado. Las modificaciones dejan un registro de auditoría.
+## Módulos implementados
 
-Pendientes para despliegue real: permisos por categorías y roles de apoderado, invitaciones y recuperación de cuentas, revisión de privacidad y almacenamiento cifrado, HTTPS/hosting, copias de seguridad operativas y pruebas de concurrencia/carga en cancha. Sin modo offline. La aprobación de justificativos es definitiva en esta interfaz. No incluye eliminación de registros históricos. No afirmar cumplimiento normativo ni rendimiento menor a un segundo hasta validarlo.
+1. **Dashboard operativo (`/`)**: KPIs, próxima sesión en pista, préstamos activos y pendientes de revisión (documentos sensibles ocultos para `Asistente`).
+2. **Evaluación en pista (`/pista/`)**: matriz táctil en vivo (`Presente`, `Atraso`, `Ausente`, `Ausente justificado`), escalas `1–10` de Frenado, Pase y Tiro, búsqueda por nombre/RUT, acción masiva «Marcar pendientes como Presente», alertas de autorización de apoderado y **cola offline local en `localStorage`** cuando falla la señal en cancha.
+3. **Calendario (`/calendario/`)**: vistas Mensual, Semanal y Listado; creación individual o **repetición semanal de 1 a 12 clases**; cancelación segura preservando historial.
+4. **Plantilla de jugadores (`/jugadores/`)**: ficha con validación **RUT Módulo 11**, creación/restablecimiento de acceso al portal, historial evolutivo con gráfico Canvas 2D interactivo, atajo al informe PDF mensual y exportación CSV protegida contra inyección de fórmulas.
+5. **Portal del deportista (`/`)**: vista personal con gráfico técnico, próximos entrenamientos, equipamiento en préstamo activo, estado de autorización de apoderado, rutinas asignadas y envío de justificativos médicos/académicos (sin acceso a `observacion_privada`).
+6. **Justificativos y Autorizaciones (`/justificativos/`, `/autorizaciones/`)**: acceso restringido a `Entrenador` y `Administrador`, límite de **4 MB** (seguro para Vercel), validación de firma binaria PDF/JPG, cálculo de **huella SHA-256**, limpieza de archivos reemplazados, registro de IP en autorizaciones y trazabilidad de revisor (`revisado_por` y nota).
+7. **Inventario del club (`/inventario/`)**: búsqueda por código/equipo/deportista, registro de préstamos únicos activos y devolución con actualización del estado de conservación (`Bueno`, `Desgastado`, `En reparación`).
+8. **Reportes mensuales (`/reportes/`) y Auditoría (`/auditoria/`)**: generación de PDF con `ReportLab` y CSV por jugador o categoría, más bitácora de auditoría administrativa.
+9. **Equipo técnico y roles (`/equipo-tecnico/`)**: creación y gestión de cuentas técnicas (`Administrador`, `Entrenador`, `Asistente`) sin entrar al panel `/admin/`.
 
-Usar documentos ficticios durante la prueba local. El servidor de desarrollo no está publicado en Internet; el entrenador necesita ejecutar la copia en su computador o probarla contigo.
+---
 
-## Validación
+## Validación y pruebas automatizadas
+
 ```powershell
-.\.venv\Scripts\python.exe -m pip install -r requirements-dev.txt
-.\.venv\Scripts\python.exe manage.py test seguimiento
+$env:LOCAL_SQLITE = "1"
+.\.venv\Scripts\python.exe manage.py test seguimiento -v 2
+.\.venv\Scripts\python.exe scripts\verificar_h5.py
 ```
-Dieciséis pruebas cubren páginas, persistencia y validación, permisos, préstamos/devoluciones, justificativos, rutinas, edición de jugadores, calendario, comentarios privados, reportes PDF y autorizaciones.
-
-## Datos de demostración y entrega
-Consulta COMPARTIR.md para preparar la demo en otro computador o conocer los pasos pendientes para compartir un enlace. El comando `python manage.py cargar_demo` añade datos identificados como DEMO y no crea cuentas ni sobrescribe cambios.
-
-## Actualización posterior a la reunión
-- Calendario semanal, mensual y listado. Clases manuales con fecha, hora, categoría, entrenador, objetivo y estado. Sin repetición automática. Una clase con evaluaciones no permite cambiar fecha/categoría ni volver a programada; se puede cancelar conservando historial.
-- Para evaluar, la clase debe estar Realizada y no tener fecha futura. Los estados de asistencia incluyen Atraso.
-- Observación privada por evaluación completa. Acceso desde la grilla tras guardar asistencia o desde el historial. No aparece al alumno ni se exporta.
-- Reportes mensuales PDF por jugador o categoría. Promedios excluyen ausencias, notas cero y clases no realizadas. Las categorías anteriores se reconstruyeron con la ficha disponible en la migración, porque no existía registro histórico de cambios de categoría.
-- Autorizaciones de apoderados con PDF/JPG, fecha, responsable y estados Pendiente, Vigente o Revocada. Solo personal is_staff. El registro no comprueba firmas ni certifica cumplimiento legal.
-
-Para actualizar una instalación existente: detener el servidor, hacer respaldo privado de db.sqlite3 y private_media, copiar el código nuevo conservando esos datos y ejecutar INICIAR.cmd. No sustituir la base de datos por otra. El script instala reportlab y aplica las migraciones. Los ejemplos nuevos se cargan con `python manage.py cargar_demo`; repetirlos no reinicia los cambios.

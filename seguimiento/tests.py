@@ -398,3 +398,203 @@ class PilotTests(TestCase):
         self.client.force_login(self.student)
         self.assertEqual(self.client.get('/jugadores/exportar/').status_code, 403)
         self.assertEqual(self.client.get('/auditoria/').status_code, 403)
+
+
+class Block3Tests(TestCase):
+    def setUp(self):
+        from datetime import timedelta
+        self.today = timezone.localdate()
+        self.tomorrow = self.today + timedelta(days=1)
+        self.admin = User.objects.create_user('admin_club', password='test-pass', is_staff=True, is_superuser=True)
+        self.coach = User.objects.create_user('entrenador_b3', password='test-pass', is_staff=True)
+        self.assistant = User.objects.create_user('asistente_b3', password='test-pass', is_staff=True)
+        from .roles import assign_staff_role, ROL_ASISTENTE
+        assign_staff_role(self.assistant, ROL_ASISTENTE)
+        self.student = User.objects.create_user('22.222.222-2', password='test-pass')
+        self.player = Jugador.objects.create(
+            rut='22.222.222-2',
+            nombre_completo='Sofía Valdés',
+            categoria='S15',
+            fecha_nacimiento='2012-04-12',
+            contacto_emergencia='912345678',
+        )
+        self.session = ClaseEntrenamiento.objects.create(fecha=self.today, categoria='S15', estado='realizada')
+
+    def test_upload_4mb_limit_sha256_cleanup_and_review_traceability(self):
+        import hashlib
+        import os
+
+        self.client.force_login(self.coach)
+        ev = Evaluacion.objects.create(jugador=self.player, clase=self.session, asistencia='A', observacion_privada='OCULTA_B3')
+
+        with tempfile.TemporaryDirectory() as tmp, override_settings(MEDIA_ROOT=tmp):
+            oversized = SimpleUploadedFile('grande.pdf', b'%PDF-1.4\n' + (b'0' * (4 * 1024 * 1024 + 64)), content_type='application/pdf')
+            res_big = self.client.post('/justificativos/nuevo/', {'evaluacion': ev.pk, 'motivo': 'Excede límite', 'archivo': oversized})
+            self.assertEqual(res_big.status_code, 200)
+            self.assertContains(res_big, '4 MB')
+            self.assertFalse(Justificativo.objects.exists())
+
+            valid_bytes = b'%PDF-1.4\n1 0 obj<<>>endobj\n%%EOF'
+            pdf = SimpleUploadedFile('ok.pdf', valid_bytes, content_type='application/pdf')
+            res_ok = self.client.post('/justificativos/nuevo/', {'evaluacion': ev.pk, 'motivo': 'Certificado médico', 'archivo': pdf})
+            self.assertEqual(res_ok.status_code, 302)
+            doc = Justificativo.objects.get()
+            self.assertEqual(doc.hash_documento, hashlib.sha256(valid_bytes).hexdigest())
+
+            self.client.post(
+                f'/justificativos/{doc.pk}/revisar/',
+                {'estado': 'aprobado', 'observacion_revision': 'Certificado validado en pista'},
+            )
+            doc.refresh_from_db()
+            self.assertEqual(doc.revisado_por, self.coach)
+            self.assertEqual(doc.observacion_revision, 'Certificado validado en pista')
+
+            auth_bytes_1 = b'%PDF-1.4\n%auth-v1\n%%EOF'
+            auth_bytes_2 = b'%PDF-1.4\n%auth-v2\n%%EOF'
+            a1 = SimpleUploadedFile('a1.pdf', auth_bytes_1, content_type='application/pdf')
+            res_a1 = self.client.post(
+                '/autorizaciones/nueva/',
+                {'jugador': self.player.pk, 'apoderado': 'Carla Valdés', 'fecha': str(self.today), 'responsable': 'Waldo', 'estado': 'pendiente', 'archivo': a1},
+                REMOTE_ADDR='190.10.20.30',
+            )
+            self.assertEqual(res_a1.status_code, 302)
+            auth = Autorizacion.objects.get()
+            self.assertEqual(auth.hash_documento, hashlib.sha256(auth_bytes_1).hexdigest())
+            self.assertEqual(auth.ip_registro, '190.10.20.30')
+            old_path = os.path.join(tmp, auth.archivo.name)
+            self.assertTrue(os.path.exists(old_path))
+
+            a2 = SimpleUploadedFile('a2.pdf', auth_bytes_2, content_type='application/pdf')
+            res_a2 = self.client.post(
+                f'/autorizaciones/{auth.pk}/editar/',
+                {'jugador': self.player.pk, 'apoderado': 'Carla Valdés', 'fecha': str(self.today), 'responsable': 'Waldo', 'estado': 'vigente', 'archivo': a2},
+            )
+            self.assertEqual(res_a2.status_code, 302)
+            auth.refresh_from_db()
+            self.assertEqual(auth.hash_documento, hashlib.sha256(auth_bytes_2).hexdigest())
+            self.assertFalse(os.path.exists(old_path))
+            self.assertTrue(os.path.exists(os.path.join(tmp, auth.archivo.name)))
+
+    def test_rbac_roles_and_staff_management_ui(self):
+        # Entrenador titular no entra a Administración de equipo técnico
+        self.client.force_login(self.coach)
+        self.assertEqual(self.client.get('/equipo-tecnico/').status_code, 403)
+        self.assertEqual(self.client.get('/autorizaciones/').status_code, 200)
+
+        # Alumno no entra a Administración
+        self.client.force_login(self.student)
+        self.assertEqual(self.client.get('/equipo-tecnico/').status_code, 403)
+
+        # Asistente puede operar en pista, calendario, inventario, rutinas y reportes, pero no en documentos legales ni exportación masiva
+        self.client.force_login(self.assistant)
+        for allowed in ['/', '/pista/', '/calendario/', '/jugadores/', f'/jugadores/{self.player.pk}/', '/inventario/', '/rutinas/', '/reportes/']:
+            with self.subTest(allowed=allowed):
+                self.assertEqual(self.client.get(allowed).status_code, 200)
+        for denied in ['/justificativos/', '/justificativos/nuevo/', '/autorizaciones/', '/autorizaciones/nueva/', '/auditoria/', '/jugadores/exportar/', '/agregar/', '/inventario/nuevo/', '/equipo-tecnico/']:
+            with self.subTest(denied=denied):
+                self.assertEqual(self.client.get(denied).status_code, 403)
+        res_dash = self.client.get('/')
+        self.assertNotContains(res_dash, 'Justificativos pendientes')
+        self.assertNotContains(res_dash, '/autorizaciones/')
+
+        # Administrador gestiona cuentas en /equipo-tecnico/
+        self.client.force_login(self.admin)
+        page = self.client.get('/equipo-tecnico/')
+        self.assertEqual(page.status_code, 200)
+        res_create = self.client.post(
+            '/equipo-tecnico/',
+            {'username': 'waldo.rivas', 'nombre': 'Waldo Rivas', 'rol': 'Entrenador'},
+            follow=True,
+        )
+        self.assertEqual(res_create.status_code, 200)
+        waldo = User.objects.get(username='waldo.rivas')
+        self.assertTrue(waldo.is_staff)
+        msg_text = ' '.join(str(m) for m in res_create.context['messages'])
+        match = re.search(r'Contraseña temporal:\s*(\S+)', msg_text)
+        self.assertIsNotNone(match)
+        self.assertFalse(Auditoria.objects.filter(accion__icontains=match.group(1)).exists())
+
+        self.client.post(f'/equipo-tecnico/{waldo.pk}/gestionar/', {'action': 'role', 'rol': 'Asistente'})
+        from .roles import get_user_role, ROL_ASISTENTE
+        self.assertEqual(get_user_role(waldo), ROL_ASISTENTE)
+        self.client.post(f'/equipo-tecnico/{waldo.pk}/gestionar/', {'action': 'toggle'})
+        waldo.refresh_from_db()
+        self.assertFalse(waldo.is_active)
+
+    def test_weekly_recurrence_inventory_search_student_portal_and_headers(self):
+        self.client.force_login(self.coach)
+        # Repetición semanal de 3 clases futuras
+        res_rec = self.client.post(
+            '/clases/nueva/',
+            {
+                'fecha': str(self.tomorrow),
+                'hora': '18:30',
+                'categoria': 'S15',
+                'profesor': 'Waldo',
+                'objetivo': 'Desplazamiento',
+                'estado': 'programada',
+                'semanas': 3,
+            },
+        )
+        self.assertEqual(res_rec.status_code, 302)
+        scheduled = list(ClaseEntrenamiento.objects.filter(estado='programada', objetivo='Desplazamiento').order_by('fecha'))
+        self.assertEqual(len(scheduled), 3)
+        self.assertEqual((scheduled[1].fecha - scheduled[0].fecha).days, 7)
+        self.assertEqual((scheduled[2].fecha - scheduled[1].fecha).days, 7)
+
+        # No permite programar múltiples semanas ya como realizadas
+        res_bad_rec = self.client.post(
+            '/clases/nueva/',
+            {
+                'fecha': str(self.today),
+                'hora': '18:30',
+                'categoria': 'S15',
+                'profesor': 'Waldo',
+                'objetivo': 'Error',
+                'estado': 'realizada',
+                'semanas': 2,
+            },
+        )
+        self.assertEqual(res_bad_rec.status_code, 200)
+        self.assertFalse(ClaseEntrenamiento.objects.filter(objetivo='Error').exists())
+
+        # Búsqueda en inventario y actualización de estado al devolver
+        eq = Equipo.objects.create(codigo='STK-99', nombre='Stick Carbono', estado='bueno')
+        Equipo.objects.create(codigo='CAS-02', nombre='Casco Azul', estado='bueno')
+        pr = Prestamo.objects.create(equipo=eq, jugador=self.player)
+        inv_res = self.client.get('/inventario/', {'q': 'Carbono'})
+        self.assertContains(inv_res, 'Stick Carbono')
+        self.assertNotContains(inv_res, 'Casco Azul')
+
+        # Portal alumno muestra próxima clase, préstamo activo, autorización y oculta observaciones privadas
+        Evaluacion.objects.create(jugador=self.player, clase=self.session, asistencia='P', nota_frenado=8, observacion_privada='SECRETO_EN_PORTAL')
+        with tempfile.TemporaryDirectory() as tmp, override_settings(MEDIA_ROOT=tmp):
+            pdf = SimpleUploadedFile('a.pdf', b'%PDF-1.4\n%%EOF', content_type='application/pdf')
+            Autorizacion.objects.create(jugador=self.player, apoderado='Carla Valdés', fecha=self.today, responsable='Waldo', estado='vigente', archivo=pdf)
+
+        self.client.force_login(self.student)
+        st_res = self.client.get('/')
+        self.assertEqual(st_res.status_code, 200)
+        self.assertContains(st_res, 'Desplazamiento')
+        self.assertContains(st_res, 'Stick Carbono')
+        self.assertContains(st_res, 'Vigente')
+        self.assertNotContains(st_res, 'SECRETO_EN_PORTAL')
+        self.assertNotContains(st_res, '<style>')
+
+        # Devolución con cambio de estado de conservación
+        self.client.force_login(self.coach)
+        self.client.post(f'/prestamos/{pr.pk}/devolver/', {'estado_equipo': 'desgastado'})
+        eq.refresh_from_db()
+        self.assertEqual(eq.estado, 'desgastado')
+
+        # PWA Manifest, cabeceras de seguridad y atajo PDF en historial
+        manifest_res = self.client.get('/manifest.webmanifest')
+        self.assertEqual(manifest_res.status_code, 200)
+        self.assertIn('application/manifest+json', manifest_res['Content-Type'])
+        self.assertIn('cdh-icon.svg', manifest_res.content.decode('utf-8'))
+
+        hist_res = self.client.get(f'/jugadores/{self.player.pk}/')
+        self.assertEqual(hist_res.headers.get('X-Frame-Options'), 'DENY')
+        self.assertEqual(hist_res.headers.get('X-Content-Type-Options'), 'nosniff')
+        self.assertContains(hist_res, 'Informe PDF del mes')
+        self.assertContains(hist_res, 'chart-hover')

@@ -4,7 +4,10 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#0c2d57">
   <title>CD Huachipato · Seguimiento deportivo</title>
+  <link rel="icon" type="image/svg+xml" href="{% static 'seguimiento/img/cdh-icon.svg' %}">
+  <link rel="manifest" href="{% url 'manifest' %}">
   <link rel="stylesheet" href="{% static 'seguimiento/css/styles.css' %}">
 </head>
 <body>
@@ -12,7 +15,7 @@
     <div class="app-shell">
       <aside class="sidebar" id="app-sidebar" aria-label="Menú lateral">
         <a class="sidebar-brand" href="{% url 'panel_entrenador' %}">
-          <span class="brand-mark" aria-hidden="true">CDH</span>
+          <img class="brand-logo" src="{% static 'seguimiento/img/cdh-icon.svg' %}" alt="" width="38" height="38">
           <span>
             <span class="brand-title">CD Huachipato</span>
             <span class="brand-sub">Hockey en patines</span>
@@ -51,20 +54,22 @@
 
             <div class="nav-group">
               <div class="nav-group-label">Club y documentos</div>
-              <a href="{% url 'justificativos' %}" class="nav-link {% if current == 'justificativos' or current == 'nuevo_justificativo' %}active{% endif %}">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><path d="M9 15l2 2 4-4"/></svg>
-                <span>Justificativos</span>
-                {% if nav_pending_docs %}
-                  <span class="nav-pill">{{ nav_pending_docs }}</span>
-                {% endif %}
-              </a>
-              <a href="{% url 'autorizaciones' %}" class="nav-link {% if current == 'autorizaciones' or current == 'nueva_autorizacion' or current == 'editar_autorizacion' %}active{% endif %}">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-                <span>Autorizaciones</span>
-                {% if nav_pending_auth %}
-                  <span class="nav-pill">{{ nav_pending_auth }}</span>
-                {% endif %}
-              </a>
+              {% if nav_can_sensitive %}
+                <a href="{% url 'justificativos' %}" class="nav-link {% if current == 'justificativos' or current == 'nuevo_justificativo' %}active{% endif %}">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><path d="M9 15l2 2 4-4"/></svg>
+                  <span>Justificativos</span>
+                  {% if nav_pending_docs %}
+                    <span class="nav-pill">{{ nav_pending_docs }}</span>
+                  {% endif %}
+                </a>
+                <a href="{% url 'autorizaciones' %}" class="nav-link {% if current == 'autorizaciones' or current == 'nueva_autorizacion' or current == 'editar_autorizacion' %}active{% endif %}">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                  <span>Autorizaciones</span>
+                  {% if nav_pending_auth %}
+                    <span class="nav-pill">{{ nav_pending_auth }}</span>
+                  {% endif %}
+                </a>
+              {% endif %}
               <a href="{% url 'inventario' %}" class="nav-link {% if current == 'inventario' or current == 'nuevo_equipo' or current == 'editar_equipo' or current == 'prestar' %}active{% endif %}">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>
                 <span>Inventario club</span>
@@ -80,10 +85,18 @@
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
                 <span>Reportes mensuales</span>
               </a>
-              <a href="{% url 'auditoria' %}" class="nav-link {% if current == 'auditoria' %}active{% endif %}">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 8v4l3 3"/><circle cx="12" cy="12" r="9"/></svg>
-                <span>Auditoría</span>
-              </a>
+              {% if nav_can_sensitive %}
+                <a href="{% url 'auditoria' %}" class="nav-link {% if current == 'auditoria' %}active{% endif %}">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 8v4l3 3"/><circle cx="12" cy="12" r="9"/></svg>
+                  <span>Auditoría</span>
+                </a>
+              {% endif %}
+              {% if nav_is_admin %}
+                <a href="{% url 'equipo_tecnico' %}" class="nav-link {% if current == 'equipo_tecnico' %}active{% endif %}">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09a1.65 1.65 0 0 0 1.51-1 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33h.09A1.65 1.65 0 0 0 11 3.09V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51h.09a1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82v.09a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+                  <span>Equipo técnico</span>
+                </a>
+              {% endif %}
             </div>
           {% endwith %}
         </nav>
@@ -93,7 +106,7 @@
             <span class="user-avatar" aria-hidden="true">{{ user.username|slice:":2"|upper }}</span>
             <div>
               <span class="user-name">{{ user.get_full_name|default:user.username }}</span>
-              <span class="user-role">Cuerpo técnico</span>
+              <span class="user-role">{{ nav_user_role|default:"Cuerpo técnico" }}</span>
             </div>
           </div>
           <div class="sidebar-footer-actions">
@@ -126,7 +139,7 @@
   {% elif user.is_authenticated %}
     <header class="student-header">
       <div class="user-chip">
-        <span class="brand-mark" aria-hidden="true">CDH</span>
+        <img class="brand-logo" src="{% static 'seguimiento/img/cdh-icon.svg' %}" alt="" width="38" height="38">
         <div>
           <span class="brand-title">CD Huachipato</span>
           <span class="brand-sub">Portal del deportista · {{ user.username }}</span>
@@ -145,7 +158,7 @@
     <div class="auth-shell">
       <div class="auth-wrap">
         <div class="auth-brand">
-          <span class="brand-mark" aria-hidden="true">CDH</span>
+          <img class="brand-logo" src="{% static 'seguimiento/img/cdh-icon.svg' %}" alt="" width="52" height="52">
           <h1>CD Huachipato</h1>
           <small class="muted">Hockey en patines · Seguimiento deportivo</small>
         </div>

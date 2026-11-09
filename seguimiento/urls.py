@@ -3,6 +3,7 @@ from . import pilot_views as v
 from . import planning_views as plan
 
 urlpatterns = [
+    path('manifest.webmanifest', v.manifest_json, name='manifest'),
     path('calendario/', plan.schedule, name='calendario'),
     path('clases/nueva/', plan.session_edit, name='programar_clase'),
     path('clases/<int:pk>/editar/', plan.session_edit, name='editar_clase'),
@@ -38,4 +39,6 @@ urlpatterns = [
     path('rutinas/<int:pk>/editar/', v.routine_edit, name='editar_rutina'),
     path('rutinas/<int:pk>/completar/', v.student_complete_routine, name='completar_rutina'),
     path('auditoria/', v.audit_log, name='auditoria'),
+    path('equipo-tecnico/', v.staff_list, name='equipo_tecnico'),
+    path('equipo-tecnico/<int:pk>/gestionar/', v.staff_manage, name='gestionar_equipo_tecnico'),
 ]

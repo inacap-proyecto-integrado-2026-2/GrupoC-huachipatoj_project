@@ -1,0 +1,104 @@
+{% extends 'seguimiento/base.html' %}
+
+{% block content %}
+  <div class="page-header">
+    <div>
+      <h1>Equipo técnico y permisos</h1>
+      <p class="muted">Administración de roles RBAC del club: Administrador, Entrenador Titular y Profesor Asistente.</p>
+    </div>
+  </div>
+
+  <div class="notice">
+    <strong>Niveles de acceso:</strong>
+    <strong>Administrador</strong> gestiona cuentas técnicas, roles y todo el club ·
+    <strong>Entrenador</strong> accede a pista, nómina, justificativos, autorizaciones y auditoría ·
+    <strong>Asistente</strong> evalúa en pista, gestiona calendario, rutinas, préstamos y reportes sin acceder a documentos legales ni exportación masiva.
+  </div>
+
+  <div class="card">
+    <div class="card-header">
+      <h2>Crear cuenta de cuerpo técnico</h2>
+    </div>
+    <form class="edit" method="post">
+      {% csrf_token %}
+      {{ form.as_p }}
+      <div class="form-actions">
+        <button type="submit">+ Crear cuenta técnica</button>
+      </div>
+    </form>
+  </div>
+
+  <div class="card table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Usuario</th>
+          <th>Rol asignado</th>
+          <th>Estado</th>
+          <th>Gestión de rol y acceso</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for u in staff_users %}
+          <tr>
+            <td>
+              <strong>{{ u.username }}</strong>
+              {% if u.is_superuser %}<span class="badge badge-info">Superusuario</span>{% endif %}<br>
+              <small>{{ u.first_name|default:'Sin nombre visible' }}</small>
+            </td>
+            <td>
+              <span class="badge {% if u.rol_actual == 'Administrador' %}badge-info{% elif u.rol_actual == 'Asistente' %}badge-warning{% else %}badge-success{% endif %}">
+                {{ u.rol_actual }}
+              </span>
+            </td>
+            <td>
+              {% if u.is_active %}
+                <span class="badge badge-success">Activa</span>
+              {% else %}
+                <span class="badge badge-danger">Desactivada</span>
+              {% endif %}
+            </td>
+            <td>
+              <div class="quick-actions">
+                {% if not u.is_superuser %}
+                  <form class="inline-actions" method="post" action="{% url 'gestionar_equipo_tecnico' u.pk %}">
+                    {% csrf_token %}
+                    <input type="hidden" name="action" value="role">
+                    <select name="rol" class="inline-select" aria-label="Rol para {{ u.username }}">
+                      {% for code, label in roles %}
+                        <option value="{{ code }}" {% if u.rol_actual == code %}selected{% endif %}>{{ label }}</option>
+                      {% endfor %}
+                    </select>
+                    <button type="submit" class="button-secondary button-sm">Cambiar rol</button>
+                  </form>
+                {% endif %}
+
+                {% if not u.is_superuser and u.pk != user.pk %}
+                  <form class="inline" method="post" action="{% url 'gestionar_equipo_tecnico' u.pk %}" data-confirm="¿Seguro que deseas {% if u.is_active %}desactivar{% else %}activar{% endif %} la cuenta {{ u.username }}?">
+                    {% csrf_token %}
+                    <input type="hidden" name="action" value="toggle">
+                    <button type="submit" class="button-sm {% if u.is_active %}button-danger-outline{% else %}button-success{% endif %}">
+                      {% if u.is_active %}Desactivar{% else %}Reactivar{% endif %}
+                    </button>
+                  </form>
+                {% endif %}
+
+                {% if not u.is_superuser or u.pk == user.pk %}
+                  <form class="inline" method="post" action="{% url 'gestionar_equipo_tecnico' u.pk %}" data-confirm="¿Generar una nueva contraseña temporal para {{ u.username }}?">
+                    {% csrf_token %}
+                    <input type="hidden" name="action" value="reset">
+                    <button type="submit" class="button-secondary button-sm">Restablecer clave</button>
+                  </form>
+                {% endif %}
+              </div>
+            </td>
+          </tr>
+        {% empty %}
+          <tr>
+            <td colspan="4" class="empty">No hay cuentas de cuerpo técnico registradas.</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+{% endblock %}
