@@ -1,11 +1,14 @@
 {% extends 'seguimiento/base.html' %}
 
 {% block content %}
-  <h1>Justificativos</h1>
-  <p class="muted">Carga y revisión por el entrenador. Documentos privados PDF o JPG, hasta 10 MB.</p>
-
-  <div class="toolbar">
-    <a class="button" href="{% url 'nuevo_justificativo' %}">+ Adjuntar justificativo</a>
+  <div class="page-header">
+    <div>
+      <h1>Justificativos</h1>
+      <p class="muted">Carga y revisión por el entrenador. Documentos privados PDF o JPG, hasta 10 MB.</p>
+    </div>
+    <div class="quick-actions">
+      <a class="button" href="{% url 'nuevo_justificativo' %}">+ Adjuntar justificativo</a>
+    </div>
   </div>
 
   <div class="card table-wrap">
@@ -22,7 +25,7 @@
         {% for d in documentos %}
           <tr>
             <td>
-              {{ d.evaluacion.jugador.nombre_completo }}<br>
+              <strong>{{ d.evaluacion.jugador.nombre_completo }}</strong><br>
               <small>{{ d.evaluacion.clase.fecha }} · #{{ d.evaluacion.clase_id }}</small>
             </td>
             <td>
@@ -30,17 +33,17 @@
               <a href="{% url 'archivo_justificativo' d.pk %}">Descargar documento</a>
             </td>
             <td>
-              <span class="badge">{{ d.get_estado_display }}</span>
+              <span class="badge badge-{{ d.estado }}">{{ d.get_estado_display }}</span>
             </td>
             <td>
               {% if d.estado == 'pendiente' %}
-                <form method="post" action="{% url 'revisar_justificativo' d.pk %}">
+                <form class="quick-actions" method="post" action="{% url 'revisar_justificativo' d.pk %}">
                   {% csrf_token %}
-                  <button type="submit" name="estado" value="aprobado">Aprobar</button>
-                  <button type="submit" name="estado" value="rechazado">Rechazar</button>
+                  <button type="submit" class="button-sm button-success" name="estado" value="aprobado">Aprobar</button>
+                  <button type="submit" class="button-sm button-danger-outline" name="estado" value="rechazado">Rechazar</button>
                 </form>
               {% else %}
-                Revisado
+                <span class="muted">Revisado</span>
               {% endif %}
             </td>
           </tr>

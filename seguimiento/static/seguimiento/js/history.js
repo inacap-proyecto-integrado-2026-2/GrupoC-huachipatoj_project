@@ -1,5 +1,5 @@
 /* ==========================================================================
-   Historial Individual — Gráfico de Evolución en Canvas 2D
+   Historial Individual — Gráfico de Evolución en Canvas 2D (Tema Claro)
    ========================================================================== */
 
 (() => {
@@ -19,27 +19,29 @@
 
     const w = canvas.clientWidth;
     ctx.font = '12px system-ui';
-    ctx.fillStyle = '#afc2d5';
+    ctx.fillStyle = '#64748b';
 
     for (let n = 1; n <= 10; n++) {
       const y = 220 - (n - 1) * 21;
-      ctx.fillText(n, 3, y + 4);
-      ctx.strokeStyle = '#2a3e56';
+      ctx.fillText(n, 4, y + 4);
+      ctx.strokeStyle = '#e2e8f0';
+      ctx.lineWidth = 1;
       ctx.beginPath();
-      ctx.moveTo(25, y);
-      ctx.lineTo(w - 15, y);
+      ctx.moveTo(26, y);
+      ctx.lineTo(w - 14, y);
       ctx.stroke();
     }
 
     const metrics = [
-      ['frenado', '#38bdf8'],
-      ['pase', '#34d399'],
-      ['tiro', '#fbbf24'],
+      ['frenado', '#0284c7'],
+      ['pase', '#059669'],
+      ['tiro', '#d97706'],
     ];
 
     metrics.forEach(([key, color]) => {
       ctx.strokeStyle = color;
       ctx.fillStyle = color;
+      ctx.lineWidth = 2.2;
       ctx.beginPath();
 
       let started = false;
@@ -48,7 +50,7 @@
           started = false;
           return;
         }
-        const x = 30 + (i * (w - 60)) / Math.max(data.length - 1, 1);
+        const x = 32 + (i * (w - 64)) / Math.max(data.length - 1, 1);
         const y = 220 - (d[key] - 1) * 21;
         if (started) ctx.lineTo(x, y);
         else ctx.moveTo(x, y);
@@ -58,17 +60,22 @@
 
       data.forEach((d, i) => {
         if (d[key] === null) return;
-        const x = 30 + (i * (w - 60)) / Math.max(data.length - 1, 1);
+        const x = 32 + (i * (w - 64)) / Math.max(data.length - 1, 1);
         const y = 220 - (d[key] - 1) * 21;
+        ctx.fillStyle = '#ffffff';
         ctx.beginPath();
-        ctx.arc(x, y, 4, 0, Math.PI * 2);
+        ctx.arc(x, y, 5, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = color;
+        ctx.beginPath();
+        ctx.arc(x, y, 3.6, 0, Math.PI * 2);
         ctx.fill();
       });
     });
 
-    ctx.fillStyle = '#afc2d5';
+    ctx.fillStyle = '#64748b';
     if (data.length) {
-      ctx.fillText(data[0].fecha, 25, 250);
+      ctx.fillText(data[0].fecha, 26, 250);
       if (data.length > 1) {
         ctx.fillText(data[data.length - 1].fecha, w - 100, 250);
       }

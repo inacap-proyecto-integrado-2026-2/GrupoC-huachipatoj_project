@@ -1,11 +1,14 @@
 {% extends 'seguimiento/base.html' %}
 
 {% block content %}
-  <h1>Rutinas individuales</h1>
-  <p class="muted">Asigna ejercicios y registra su cumplimiento y observaciones.</p>
-
-  <div class="toolbar">
-    <a class="button" href="{% url 'nueva_rutina' %}">+ Asignar rutina</a>
+  <div class="page-header">
+    <div>
+      <h1>Rutinas individuales</h1>
+      <p class="muted">Asigna ejercicios y registra su cumplimiento y observaciones.</p>
+    </div>
+    <div class="quick-actions">
+      <a class="button" href="{% url 'nueva_rutina' %}">+ Asignar rutina</a>
+    </div>
   </div>
 
   {% include 'seguimiento/routines_list.html' %}

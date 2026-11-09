@@ -1,14 +1,21 @@
 {% extends 'seguimiento/base.html' %}
 
 {% block content %}
-  <h1>{{ titulo }}</h1>
-  {% if ayuda %}
-    <p class="muted">{{ ayuda }}</p>
-  {% endif %}
+  <div class="page-header">
+    <div>
+      <h1>{{ titulo }}</h1>
+      {% if ayuda %}
+        <p class="muted">{{ ayuda }}</p>
+      {% endif %}
+    </div>
+  </div>
 
   <form class="card edit" method="post" enctype="multipart/form-data">
     {% csrf_token %}
     {{ form.as_p }}
-    <button type="submit">Guardar</button>
+    <div class="form-actions">
+      <button type="submit">Guardar</button>
+      <a class="button button-secondary" href="{{ cancel_url|default:'/' }}">Cancelar</a>
+    </div>
   </form>
 {% endblock %}

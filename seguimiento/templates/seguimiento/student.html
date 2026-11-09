@@ -1,10 +1,15 @@
 {% extends 'seguimiento/base.html' %}
 
 {% block content %}
-  <h1>Mi rendimiento</h1>
-  <p>{{ player.nombre_completo|default:'Cuenta sin jugador asociado' }}</p>
+  <div class="page-header">
+    <div>
+      <h1>Mi rendimiento</h1>
+      <p class="muted">{{ player.nombre_completo|default:'Cuenta sin jugador asociado' }}{% if player %} · {{ player.get_categoria_display }}{% endif %}</p>
+    </div>
+  </div>
+
   {% if player.observaciones %}
-    <p>{{ player.observaciones }}</p>
+    <div class="notice">{{ player.observaciones }}</div>
   {% endif %}
 
   {% include 'seguimiento/evaluations_list.html' %}

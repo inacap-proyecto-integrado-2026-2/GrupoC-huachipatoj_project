@@ -12,6 +12,7 @@ path('autorizaciones/nueva/', plan.authorization_edit, name='nueva_autorizacion'
 path('autorizaciones/<int:pk>/editar/', plan.authorization_edit, name='editar_autorizacion'),
 path('autorizaciones/<int:pk>/archivo/', plan.authorization_file, name='archivo_autorizacion'),
 path('', v.home, name='panel_entrenador'),
+path('pista/', v.pista, name='pista'),
 path('registro/', v.registration_closed, name='crear_cuenta'),
 path('sesiones/nueva/', v.new_session, name='nueva_sesion'),
 path('evaluaciones/guardar/', v.save_score, name='guardar_evaluacion'),

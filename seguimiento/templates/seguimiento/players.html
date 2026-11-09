@@ -1,14 +1,23 @@
 {% extends 'seguimiento/base.html' %}
 
 {% block content %}
-  <h1>Plantilla de jugadores</h1>
-  <p class="muted">Datos, categoría e historial de cada deportista.</p>
+  <div class="page-header">
+    <div>
+      <h1>Plantilla de jugadores</h1>
+      <p class="muted">Datos, categoría e historial de cada deportista.</p>
+    </div>
+    <div class="quick-actions">
+      <a class="button" href="{% url 'agregar_jugador' %}">+ Agregar jugador</a>
+    </div>
+  </div>
 
-  <div class="toolbar">
-    <a class="button" href="{% url 'agregar_jugador' %}">+ Agregar jugador</a>
-    <form method="get">
+  <div class="card">
+    <form class="toolbar" method="get">
       <input name="q" value="{{ q }}" placeholder="Buscar nombre o RUT" aria-label="Buscar jugador">
       <button type="submit">Buscar</button>
+      {% if q %}
+        <a class="button button-secondary" href="{% url 'jugadores' %}">Limpiar</a>
+      {% endif %}
     </form>
   </div>
 
@@ -26,14 +35,14 @@
         {% for p in jugadores %}
           <tr>
             <td>
-              {{ p.nombre_completo }}<br>
+              <strong>{{ p.nombre_completo }}</strong><br>
               <small>{{ p.rut }}</small>
             </td>
-            <td>{{ p.get_categoria_display }}</td>
+            <td><span class="badge">{{ p.get_categoria_display }}</span></td>
             <td>{{ p.contacto_emergencia }}</td>
             <td>
-              <a href="{% url 'historial' p.pk %}">Ver evolución</a> ·
-              <a href="{% url 'editar_jugador' p.pk %}">Editar</a>
+              <a class="button button-secondary button-sm" href="{% url 'historial' p.pk %}">Ver evolución</a>
+              <a class="button button-secondary button-sm" href="{% url 'editar_jugador' p.pk %}">Editar</a>
             </td>
           </tr>
         {% empty %}

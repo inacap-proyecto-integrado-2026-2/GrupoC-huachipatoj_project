@@ -2,15 +2,26 @@
 {% load static %}
 
 {% block content %}
-  <h1>{{ player.nombre_completo }}</h1>
-  <p class="muted">{{ player.get_categoria_display }} · Evolución individual</p>
+  <div class="page-header">
+    <div>
+      <h1>{{ player.nombre_completo }}</h1>
+      <p class="muted">{{ player.get_categoria_display }} · {{ player.rut }} · Evolución individual</p>
+    </div>
+    <div class="quick-actions">
+      <a class="button button-secondary" href="{% url 'editar_jugador' player.pk %}">Editar ficha</a>
+      <a class="button button-secondary" href="{% url 'jugadores' %}">Volver a plantilla</a>
+    </div>
+  </div>
+
   {% if player.observaciones %}
-    <p>{{ player.observaciones }}</p>
+    <div class="notice">{{ player.observaciones }}</div>
   {% endif %}
 
   <div class="card">
-    <h2>Evolución de habilidades</h2>
-    <p>Frenado (azul) · Pase (verde) · Tiro (amarillo). Escala 1–10.</p>
+    <div class="card-header">
+      <h2>Evolución de habilidades</h2>
+      <small>Frenado (azul) · Pase (verde) · Tiro (ámbar) · Escala 1–10</small>
+    </div>
     <canvas id="chart" role="img" aria-label="Evolución de notas; valores detallados en la tabla siguiente"></canvas>
     <p id="chart-empty" class="muted"></p>
   </div>

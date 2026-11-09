@@ -16,10 +16,10 @@
       {% for e in evaluaciones %}
         <tr>
           <td>
-            {{ e.clase.fecha }} · #{{ e.clase_id }}<br>
+            <strong>{{ e.clase.fecha }}</strong> · #{{ e.clase_id }}<br>
             <small>{{ e.clase.get_estado_display }}</small>
           </td>
-          <td>{{ e.get_asistencia_display }}</td>
+          <td><span class="badge badge-{{ e.asistencia }}">{{ e.get_asistencia_display }}</span></td>
           <td>{{ e.nota_frenado|default:'—' }}</td>
           <td>{{ e.nota_pase|default:'—' }}</td>
           <td>{{ e.nota_tiro|default:'—' }}</td>

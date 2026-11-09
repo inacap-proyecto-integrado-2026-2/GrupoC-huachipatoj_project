@@ -2,42 +2,57 @@
 {% load static %}
 
 {% block content %}
-  <h1>Evaluación en pista</h1>
-  <p class="muted">Selecciona un entrenamiento y registra asistencia y habilidades. Cada cambio se guarda automáticamente.</p>
+  <div class="page-header">
+    <div>
+      <h1>Evaluación en pista</h1>
+      <p class="muted">Selecciona un entrenamiento y registra asistencia y habilidades. Cada cambio se guarda automáticamente.</p>
+    </div>
+    <div class="quick-actions">
+      <a class="button" href="{% url 'programar_clase' %}">+ Programar entrenamiento</a>
+      <a class="button button-secondary" href="{% url 'calendario' %}">Ver calendario</a>
+    </div>
+  </div>
 
-  <div class="toolbar">
-    <a class="button" href="{% url 'programar_clase' %}">+ Programar entrenamiento</a>
-    <a href="{% url 'calendario' %}">Ver calendario</a>
+  <div class="card">
     <span hidden>{% csrf_token %}</span>
-    <form method="get">
-      <select name="sesion" aria-label="Entrenamiento">
-        {% for s in sesiones %}
-          <option value="{{ s.pk }}" {% if sesion.pk == s.pk %}selected{% endif %}>
-            {{ s.fecha }} · #{{ s.pk }} · {{ s.profesor }}
-          </option>
-        {% endfor %}
-      </select>
-      <select name="categoria" aria-label="Categoría">
-        <option value="">Todas las categorías</option>
-        {% for code, label in categorias %}
-          <option value="{{ code }}" {% if categoria == code %}selected{% endif %}>{{ label }}</option>
-        {% endfor %}
-      </select>
+    <form class="toolbar" method="get">
+      <label>
+        Entrenamiento
+        <select name="sesion" aria-label="Entrenamiento">
+          {% for s in sesiones %}
+            <option value="{{ s.pk }}" {% if sesion.pk == s.pk %}selected{% endif %}>
+              {{ s.fecha }} · #{{ s.pk }} · {{ s.get_categoria_display|default:'General' }} · {{ s.get_estado_display }} ({{ s.profesor }})
+            </option>
+          {% endfor %}
+        </select>
+      </label>
+      <label>
+        Categoría
+        <select name="categoria" aria-label="Categoría">
+          <option value="">Todas las categorías</option>
+          {% for code, label in categorias %}
+            <option value="{{ code }}" {% if categoria == code %}selected{% endif %}>{{ label }}</option>
+          {% endfor %}
+        </select>
+      </label>
       <button type="submit">Mostrar</button>
     </form>
+
+    {% if sesion %}
+      <div class="notice {% if bloqueada %}notice-warning{% endif %}">
+        <strong>Sesión #{{ sesion.pk }} · {{ sesion.fecha }}</strong> ·
+        <span class="badge badge-{{ sesion.estado }}">{{ sesion.get_estado_display }}</span> ·
+        {{ sesion.get_categoria_display|default:'Histórica sin categoría' }} ·
+        Evaluados: <strong>{{ evaluadas }} de {{ total_filas }}</strong> ·
+        <a href="{% url 'editar_clase' sesion.pk %}">Editar clase o cambiar estado</a>
+        {% if bloqueada %}
+          <p>La evaluación está en modo consulta. Para registrar asistencia y notas, la clase debe estar realizada y su fecha no puede ser futura.</p>
+        {% endif %}
+      </div>
+    {% endif %}
   </div>
 
   {% if sesion %}
-    <div class="notice">
-      {{ sesion.get_estado_display }} · {{ sesion.get_categoria_display|default:'Histórica sin categoría' }} ·
-      <a href="{% url 'editar_clase' sesion.pk %}">Editar clase o cambiar estado</a>
-      {% if bloqueada %}
-        <p>La evaluación está en modo consulta. Para registrar asistencia y notas, la clase debe estar realizada y su fecha no puede ser futura.</p>
-      {% endif %}
-    </div>
-
-    <p>Entrenamiento #{{ sesion.pk }} · {{ sesion.fecha }}. Una nota vacía significa sin evaluar.</p>
-
     <div class="card table-wrap">
       <table class="pista-table" data-save-url="{% url 'guardar_evaluacion' %}">
         <thead>
@@ -54,7 +69,7 @@
           {% for p, e in filas %}
             <tr class="player" data-player="{{ p.pk }}" data-session="{{ sesion.pk }}" data-locked="{{ bloqueada|yesno:'1,0' }}">
               <td>
-                <a href="{% url 'historial' p.pk %}">{{ p.nombre_completo }}</a><br>
+                <a href="{% url 'historial' p.pk %}"><strong>{{ p.nombre_completo }}</strong></a><br>
                 <small>{{ p.get_categoria_display }}</small>
               </td>
               <td>
@@ -79,7 +94,7 @@
               </td>
               <td>
                 <span class="status" role="status">{% if e %}Guardado{% else %}Sin registrar{% endif %}</span>
-                <button type="button" class="retry" hidden>Reintentar</button>
+                <button type="button" class="retry button-secondary button-sm" hidden>Reintentar</button>
                 <p>
                   <a class="observation" {% if e %}href="{% url 'observacion' e.pk %}"{% else %}hidden{% endif %}>Observación privada</a>
                 </p>

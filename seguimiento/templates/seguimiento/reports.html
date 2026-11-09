@@ -1,17 +1,23 @@
 {% extends 'seguimiento/base.html' %}
 
 {% block content %}
-  <h1>Reportes mensuales</h1>
-  <p>Selecciona un mes y un jugador o una categoría para descargar el informe PDF.</p>
+  <div class="page-header">
+    <div>
+      <h1>Reportes mensuales</h1>
+      <p class="muted">Selecciona un mes y un jugador o una categoría para descargar el informe PDF.</p>
+    </div>
+  </div>
 
   <form class="card edit" method="get">
     {{ form.as_p }}
-    <button type="submit">Descargar PDF</button>
+    <div class="form-actions">
+      <button type="submit">Descargar PDF</button>
+    </div>
   </form>
 
-  <p class="muted">
+  <div class="notice">
     Incluye agenda, asistencia, notas, promedios y evolución. Solo se promedian notas de clases realizadas y
     jugadores presentes o atrasados. Las habilidades sin evaluar y las ausencias no se promedian.
     Las observaciones privadas no se exportan.
-  </p>
+  </div>
 {% endblock %}

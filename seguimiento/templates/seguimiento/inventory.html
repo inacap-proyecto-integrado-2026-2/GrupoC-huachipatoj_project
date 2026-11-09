@@ -1,13 +1,16 @@
 {% extends 'seguimiento/base.html' %}
 
 {% block content %}
-  <h1>Inventario del club</h1>
-  <p class="muted">Control de equipamiento, préstamos y devoluciones.</p>
-
-  <div class="toolbar">
-    <a class="button" href="{% url 'nuevo_equipo' %}">+ Agregar equipo</a>
-    <a href="?pendientes=1">Devoluciones pendientes</a>
-    <a href="{% url 'inventario' %}">Ver todos</a>
+  <div class="page-header">
+    <div>
+      <h1>Inventario del club</h1>
+      <p class="muted">Control de equipamiento, préstamos y devoluciones.</p>
+    </div>
+    <div class="quick-actions">
+      <a class="button" href="{% url 'nuevo_equipo' %}">+ Agregar equipo</a>
+      <a class="button button-secondary" href="?pendientes=1">Devoluciones pendientes</a>
+      <a class="button button-secondary" href="{% url 'inventario' %}">Ver todos</a>
+    </div>
   </div>
 
   <div class="card table-wrap">
@@ -24,21 +27,29 @@
         {% for e, p in filas %}
           <tr>
             <td>
-              {{ e.nombre }}<br>
+              <strong>{{ e.nombre }}</strong><br>
               <small>{{ e.codigo }}</small>
             </td>
-            <td>{{ e.get_estado_display }}</td>
-            <td>{% if p %}{{ p.jugador.nombre_completo }}{% else %}Sin préstamo{% endif %}</td>
+            <td><span class="badge badge-{{ e.estado }}">{{ e.get_estado_display }}</span></td>
             <td>
-              <a href="{% url 'editar_equipo' e.pk %}">Editar</a> ·
               {% if p %}
-                <form class="inline" method="post" action="{% url 'devolver' p.pk %}">
-                  {% csrf_token %}
-                  <button type="submit">Registrar devolución</button>
-                </form>
-              {% elif e.estado != 'reparacion' %}
-                <a href="{% url 'prestar' e.pk %}">Prestar</a>
+                <span class="badge badge-info">{{ p.jugador.nombre_completo }}</span>
+              {% else %}
+                <span class="muted">Disponible</span>
               {% endif %}
+            </td>
+            <td>
+              <div class="quick-actions">
+                <a class="button button-secondary button-sm" href="{% url 'editar_equipo' e.pk %}">Editar</a>
+                {% if p %}
+                  <form class="inline" method="post" action="{% url 'devolver' p.pk %}">
+                    {% csrf_token %}
+                    <button type="submit" class="button-sm button-success">Registrar devolución</button>
+                  </form>
+                {% elif e.estado != 'reparacion' %}
+                  <a class="button button-sm" href="{% url 'prestar' e.pk %}">Prestar</a>
+                {% endif %}
+              </div>
             </td>
           </tr>
         {% empty %}
@@ -67,7 +78,13 @@
             <td>{{ p.equipo }}</td>
             <td>{{ p.jugador.nombre_completo }}</td>
             <td>{{ p.fecha }}</td>
-            <td>{{ p.devuelto|default:'Pendiente' }}</td>
+            <td>
+              {% if p.devuelto %}
+                {{ p.devuelto }}
+              {% else %}
+                <span class="badge badge-warning">Pendiente</span>
+              {% endif %}
+            </td>
           </tr>
         {% empty %}
           <tr>

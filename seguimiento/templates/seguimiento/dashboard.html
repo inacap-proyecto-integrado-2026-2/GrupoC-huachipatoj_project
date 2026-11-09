@@ -1,0 +1,234 @@
+{% extends 'seguimiento/base.html' %}
+
+{% block content %}
+  <div class="page-header">
+    <div>
+      <h1>Panel de control</h1>
+      <p class="muted">Resumen operativo del club · {{ today|date:"d/m/Y" }}</p>
+    </div>
+    <div class="quick-actions">
+      <a class="button" href="{% url 'pista' %}">Evaluación en pista</a>
+      <a class="button button-secondary" href="{% url 'programar_clase' %}">+ Programar clase</a>
+      <a class="button button-secondary" href="{% url 'agregar_jugador' %}">+ Agregar jugador</a>
+      <a class="button button-secondary" href="{% url 'reportes' %}">Reportes PDF</a>
+    </div>
+  </div>
+
+  <section class="kpi-grid" aria-label="Indicadores principales">
+    <a class="kpi-card" href="{% url 'jugadores' %}">
+      <div class="kpi-top">
+        <span class="kpi-label">Deportistas activos</span>
+        <span class="kpi-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
+        </span>
+      </div>
+      <div class="kpi-value">{{ total_jugadores }}</div>
+      <div class="kpi-meta">
+        {% for c in cat_breakdown %}{{ c.label }}: {{ c.count }}{% if not forloop.last %} · {% endif %}{% endfor %}
+      </div>
+    </a>
+
+    <a class="kpi-card" href="{% url 'calendario' %}">
+      <div class="kpi-top">
+        <span class="kpi-label">Clases de este mes</span>
+        <span class="kpi-icon kpi-icon-success" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+        </span>
+      </div>
+      <div class="kpi-value">{{ clases_realizadas }} <small class="muted">realizadas</small></div>
+      <div class="kpi-meta">{{ clases_programadas }} programadas · {{ clases_canceladas }} canceladas</div>
+    </a>
+
+    <a class="kpi-card {% if pending_total %}kpi-card-alert{% endif %}" href="{% url 'justificativos' %}">
+      <div class="kpi-top">
+        <span class="kpi-label">Pendientes por revisar</span>
+        <span class="kpi-icon kpi-icon-warning" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+        </span>
+      </div>
+      <div class="kpi-value">{{ pending_total }}</div>
+      <div class="kpi-meta">{{ pending_docs_count }} justificativos · {{ pending_auth_count }} autorizaciones</div>
+    </a>
+
+    <a class="kpi-card" href="{% url 'inventario' %}?pendientes=1">
+      <div class="kpi-top">
+        <span class="kpi-label">Equipamiento en préstamo</span>
+        <span class="kpi-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>
+        </span>
+      </div>
+      <div class="kpi-value">{{ active_loans_count }} <small class="muted">de {{ total_equipos }}</small></div>
+      <div class="kpi-meta">{{ equipos_reparacion }} en reparación · {{ pending_routines_count }} rutinas activas</div>
+    </a>
+  </section>
+
+  <div class="dashboard-grid">
+    <div>
+      <section class="card spotlight">
+        <div class="card-header">
+          <h2>Entrenamiento listo para evaluar</h2>
+          {% if latest_session %}
+            <span class="badge badge-{{ latest_session.estado }}">{{ latest_session.get_estado_display }}</span>
+          {% endif %}
+        </div>
+        {% if latest_session %}
+          <p>
+            <strong>#{{ latest_session.pk }} · {{ latest_session.fecha }}</strong>
+            {% if latest_session.hora %}· {{ latest_session.hora|time:"H:i" }}{% endif %}
+            · {{ latest_session.get_categoria_display|default:"Todas las categorías" }}
+            · {{ latest_session.profesor }}
+          </p>
+          {% if latest_session.objetivo %}
+            <p class="muted">Objetivo: {{ latest_session.objetivo }}</p>
+          {% endif %}
+          <div class="progress-row">
+            <div class="progress-head">
+              <span>Avance de registro en pista</span>
+              <strong>{{ latest_eval_count }} de {{ latest_target_count }} jugadores ({{ latest_pct }}%)</strong>
+            </div>
+            <div class="progress-track">
+              <div class="progress-fill" style="width: {{ latest_pct }}%;"></div>
+            </div>
+          </div>
+          <div class="form-actions">
+            <a class="button" href="{% url 'pista' %}?sesion={{ latest_session.pk }}">Abrir evaluación en pista</a>
+            <a class="button button-secondary" href="{% url 'editar_clase' latest_session.pk %}">Editar sesión</a>
+          </div>
+        {% else %}
+          <p class="muted">Aún no hay entrenamientos creados.</p>
+          <a class="button" href="{% url 'programar_clase' %}">+ Programar primer entrenamiento</a>
+        {% endif %}
+      </section>
+
+      <section class="card">
+        <div class="card-header">
+          <h2>Próximos entrenamientos</h2>
+          <a href="{% url 'calendario' %}">Ver calendario</a>
+        </div>
+        {% if upcoming_sessions %}
+          <div class="item-list">
+            {% for s in upcoming_sessions %}
+              <div class="item-row">
+                <div>
+                  <span class="item-title">{{ s.fecha }} {% if s.hora %}· {{ s.hora|time:"H:i" }}{% endif %} · {{ s.get_categoria_display|default:"General" }}</span>
+                  <small>{{ s.objetivo|default:"Sin objetivo registrado" }}</small>
+                </div>
+                <a class="button button-secondary button-sm" href="{% url 'editar_clase' s.pk %}">Editar</a>
+              </div>
+            {% endfor %}
+          </div>
+        {% else %}
+          <p class="muted">No hay clases futuras programadas. <a href="{% url 'programar_clase' %}">Programar una clase</a>.</p>
+        {% endif %}
+      </section>
+
+      <section class="card">
+        <div class="card-header">
+          <h2>Distribución de asistencia reciente</h2>
+          <small>{{ att_total }} registros</small>
+        </div>
+        {% if att_total %}
+          {% for a in attendance_stats %}
+            <div class="progress-row">
+              <div class="progress-head">
+                <span>{{ a.label }}</span>
+                <span><strong>{{ a.count }}</strong> ({{ a.pct }}%)</span>
+              </div>
+              <div class="progress-track">
+                <div class="progress-fill progress-fill-{{ a.style }}" style="width: {{ a.pct }}%;"></div>
+              </div>
+            </div>
+          {% endfor %}
+        {% else %}
+          <p class="muted">Todavía no existen evaluaciones en sesiones realizadas.</p>
+        {% endif %}
+      </section>
+    </div>
+
+    <div>
+      <section class="card">
+        <div class="card-header">
+          <h2>Justificativos pendientes</h2>
+          <a href="{% url 'justificativos' %}">Ver todos</a>
+        </div>
+        {% if pending_docs %}
+          <div class="item-list">
+            {% for d in pending_docs %}
+              <div class="item-row">
+                <div>
+                  <span class="item-title">{{ d.evaluacion.jugador.nombre_completo }}</span>
+                  <small>{{ d.evaluacion.clase.fecha }} · {{ d.motivo|truncatechars:45 }}</small>
+                </div>
+                <a class="button button-secondary button-sm" href="{% url 'justificativos' %}">Revisar</a>
+              </div>
+            {% endfor %}
+          </div>
+        {% else %}
+          <p class="muted">No hay justificativos pendientes de revisión.</p>
+        {% endif %}
+      </section>
+
+      <section class="card">
+        <div class="card-header">
+          <h2>Autorizaciones por revisar</h2>
+          <a href="{% url 'autorizaciones' %}">Ver todas</a>
+        </div>
+        {% if pending_auths %}
+          <div class="item-list">
+            {% for a in pending_auths %}
+              <div class="item-row">
+                <div>
+                  <span class="item-title">{{ a.jugador.nombre_completo }}</span>
+                  <small>Apoderado: {{ a.apoderado }} · {{ a.fecha }}</small>
+                </div>
+                <a class="button button-secondary button-sm" href="{% url 'editar_autorizacion' a.pk %}">Revisar</a>
+              </div>
+            {% endfor %}
+          </div>
+        {% else %}
+          <p class="muted">Todas las autorizaciones registradas están revisadas.</p>
+        {% endif %}
+      </section>
+
+      <section class="card">
+        <div class="card-header">
+          <h2>Préstamos de equipamiento activos</h2>
+          <a href="{% url 'inventario' %}?pendientes=1">Ir a inventario</a>
+        </div>
+        {% if active_loans %}
+          <div class="item-list">
+            {% for p in active_loans %}
+              <div class="item-row">
+                <div>
+                  <span class="item-title">{{ p.equipo.nombre }} <small>({{ p.equipo.codigo }})</small></span>
+                  <small>{{ p.jugador.nombre_completo }} · desde {{ p.fecha|date:"d/m/Y" }}</small>
+                </div>
+                <span class="badge badge-info">Prestado</span>
+              </div>
+            {% endfor %}
+          </div>
+        {% else %}
+          <p class="muted">Todo el equipamiento se encuentra devuelto.</p>
+        {% endif %}
+      </section>
+
+      <section class="card">
+        <div class="card-header">
+          <h2>Plantilla por categoría</h2>
+          <a href="{% url 'jugadores' %}">Ver jugadores</a>
+        </div>
+        {% for c in cat_breakdown %}
+          <div class="progress-row">
+            <div class="progress-head">
+              <span>{{ c.label }}</span>
+              <span><strong>{{ c.count }}</strong> ({{ c.pct }}%)</span>
+            </div>
+            <div class="progress-track">
+              <div class="progress-fill" style="width: {{ c.pct }}%;"></div>
+            </div>
+          </div>
+        {% endfor %}
+      </section>
+    </div>
+  </div>
+{% endblock %}

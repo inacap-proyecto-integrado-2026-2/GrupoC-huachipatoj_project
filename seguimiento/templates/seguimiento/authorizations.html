@@ -1,27 +1,31 @@
 {% extends 'seguimiento/base.html' %}
 
 {% block content %}
-  <h1>Autorizaciones de apoderados</h1>
-  <p class="muted">Documentos de autorización de datos. Acceso restringido al personal del club.</p>
-
-  <div class="toolbar">
-    <a class="button" href="{% url 'nueva_autorizacion' %}">+ Registrar autorización</a>
+  <div class="page-header">
+    <div>
+      <h1>Autorizaciones de apoderados</h1>
+      <p class="muted">Documentos de autorización de datos. Acceso restringido al personal del club.</p>
+    </div>
+    <div class="quick-actions">
+      <a class="button" href="{% url 'nueva_autorizacion' %}">+ Registrar autorización</a>
+    </div>
   </div>
 
-  {% for a in autorizaciones %}
-    <article class="card">
-      <h2>{{ a.jugador.nombre_completo }}</h2>
-      <p>Apoderado: {{ a.apoderado }} · Fecha: {{ a.fecha }}</p>
-      <p>
-        Responsable: {{ a.responsable }} ·
-        <span class="badge">{{ a.get_estado_display }}</span>
-      </p>
-      <div class="toolbar">
-        <a href="{% url 'editar_autorizacion' a.pk %}">Revisar o cambiar estado</a>
-        <a href="{% url 'archivo_autorizacion' a.pk %}">Descargar documento</a>
-      </div>
-    </article>
-  {% empty %}
-    <div class="card empty">Sin autorizaciones registradas.</div>
-  {% endfor %}
+  <div class="cards-grid">
+    {% for a in autorizaciones %}
+      <article class="card">
+        <div class="card-header">
+          <h2>{{ a.jugador.nombre_completo }}</h2>
+          <span class="badge badge-{{ a.estado }}">{{ a.get_estado_display }}</span>
+        </div>
+        <p><strong>Apoderado:</strong> {{ a.apoderado }}<br><small>Fecha: {{ a.fecha }} · Responsable: {{ a.responsable }}</small></p>
+        <div class="quick-actions">
+          <a class="button button-secondary button-sm" href="{% url 'editar_autorizacion' a.pk %}">Revisar o cambiar estado</a>
+          <a class="button button-sm" href="{% url 'archivo_autorizacion' a.pk %}">Descargar documento</a>
+        </div>
+      </article>
+    {% empty %}
+      <div class="card empty">Sin autorizaciones registradas.</div>
+    {% endfor %}
+  </div>
 {% endblock %}

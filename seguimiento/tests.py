@@ -3,7 +3,7 @@ import tempfile
 from django.test import TestCase, override_settings
 from django.contrib.auth.models import User
 from django.core.files.uploadedfile import SimpleUploadedFile
-from .models import Jugador, ClaseEntrenamiento, Evaluacion, Equipo, Prestamo, Rutina, Justificativo
+from .models import Jugador, ClaseEntrenamiento, Evaluacion, Equipo, Prestamo, Rutina, Justificativo, Autorizacion
 
 
 class PilotTests(TestCase):
@@ -15,7 +15,7 @@ class PilotTests(TestCase):
         self.client.force_login(self.coach)
 
     def test_pages(self):
-        for url in ['/', '/jugadores/', '/agregar/', f'/jugadores/{self.player.pk}/', f'/jugadores/{self.player.pk}/editar/', '/justificativos/', '/justificativos/nuevo/', '/inventario/', '/inventario/nuevo/', '/rutinas/', '/rutinas/nueva/', '/accounts/login/', '/registro/']:
+        for url in ['/', '/pista/', '/jugadores/', '/agregar/', f'/jugadores/{self.player.pk}/', f'/jugadores/{self.player.pk}/editar/', '/justificativos/', '/justificativos/nuevo/', '/inventario/', '/inventario/nuevo/', '/rutinas/', '/rutinas/nueva/', '/accounts/login/', '/registro/']:
             with self.subTest(url=url):
                 self.assertEqual(self.client.get(url).status_code, 200)
 
@@ -23,7 +23,8 @@ class PilotTests(TestCase):
         data = dict(jugador=self.player.pk, sesion=self.session.pk, asistencia='P', nota_frenado=8, nota_pase=7, nota_tiro=9)
         self.assertEqual(self.client.post('/evaluaciones/guardar/', data=json.dumps(data), content_type='application/json').status_code, 200)
         self.assertEqual(Evaluacion.objects.get().nota_frenado, 8)
-        self.assertContains(self.client.get('/'), 'data-value="8"')
+        self.assertContains(self.client.get('/pista/'), 'data-value="8"')
+        self.assertContains(self.client.get(f'/?sesion={self.session.pk}'), 'data-value="8"')
         data['nota_tiro'] = 11
         self.assertEqual(self.client.post('/evaluaciones/guardar/', data=json.dumps(data), content_type='application/json').status_code, 400)
         self.assertEqual(Evaluacion.objects.get().nota_tiro, 9)
@@ -124,10 +125,30 @@ class PilotTests(TestCase):
     def test_static_assets_separated_from_html(self):
         res_home = self.client.get('/')
         self.assertContains(res_home, 'seguimiento/css/styles.css')
-        self.assertContains(res_home, 'seguimiento/js/pista.js')
+        self.assertContains(res_home, 'seguimiento/js/layout.js')
+        self.assertContains(res_home, 'app-sidebar')
         self.assertNotContains(res_home, '<style>')
+        res_pista = self.client.get('/pista/')
+        self.assertContains(res_pista, 'seguimiento/js/pista.js')
+        self.assertNotContains(res_pista, '<style>')
         res_hist = self.client.get(f'/jugadores/{self.player.pk}/')
         self.assertContains(res_hist, 'seguimiento/js/history.js')
+
+    def test_dashboard_metrics_and_sidebar_badges(self):
+        ev = Evaluacion.objects.create(jugador=self.player, clase=self.session, asistencia='A')
+        Justificativo.objects.create(evaluacion=ev, motivo='Control médico', estado='pendiente')
+        Autorizacion.objects.create(jugador=self.player, apoderado='Apoderado', fecha='2026-10-01', responsable='Coach', estado='pendiente')
+        eq = Equipo.objects.create(codigo='EQ-1', nombre='Casco', estado='bueno')
+        Prestamo.objects.create(equipo=eq, jugador=self.player)
+
+        res = self.client.get('/')
+        self.assertEqual(res.status_code, 200)
+        self.assertContains(res, 'Panel de control')
+        self.assertContains(res, 'Control médico')
+        self.assertContains(res, 'Casco')
+        self.assertEqual(res.context['nav_pending_docs'], 1)
+        self.assertEqual(res.context['nav_pending_auth'], 1)
+        self.assertEqual(res.context['nav_active_loans'], 1)
 
     def test_supabase_storage_backend(self):
         import urllib.error
