@@ -11,6 +11,7 @@ import sys
 from pathlib import Path
 from dotenv import load_dotenv
 import dj_database_url
+from django.core.exceptions import ImproperlyConfigured
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -20,14 +21,22 @@ load_dotenv(BASE_DIR / '.env')
 
 IS_VERCEL = bool(os.environ.get('VERCEL') or os.environ.get('VERCEL_ENV'))
 
-# SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = os.environ.get(
-    'SECRET_KEY',
-    'django-insecure-7do1n2cn$j(#juizm)-^f8n@brw2!#x(oiv*uw15$@b*$i1_k5',
-)
-
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.environ.get('DEBUG', 'False' if IS_VERCEL else 'True') == 'True'
+
+# Solo desarrollo local con DEBUG permite la clave histórica de respaldo.
+# Vercel exige una clave propia incluso si DEBUG se activa por error.
+SECRET_KEY = os.environ.get('SECRET_KEY', '')
+if IS_VERCEL or not DEBUG:
+    if (len(SECRET_KEY.strip()) < 50 or len(set(SECRET_KEY)) < 5
+            or SECRET_KEY.startswith('django-insecure-')):
+        raise ImproperlyConfigured(
+            'Configura SECRET_KEY con una clave privada aleatoria de al menos '
+            '50 caracteres y 5 caracteres distintos. No uses claves de ejemplo '
+            'ni el prefijo django-insecure-. El valor no se muestra por seguridad.'
+        )
+elif not SECRET_KEY.strip():
+    SECRET_KEY = 'django-insecure-7do1n2cn$j(#juizm)-^f8n@brw2!#x(oiv*uw15$@b*$i1_k5'
 
 ALLOWED_HOSTS = [
     h.strip()

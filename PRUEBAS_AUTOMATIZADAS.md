@@ -8,7 +8,7 @@ Con las dependencias ya instaladas también se puede ejecutar:
 .\.venv-pruebas\Scripts\python.exe verificar_proyecto.py
 ```
 
-El ejecutor comprueba la configuración de Django, detecta cambios de modelos sin migración y ejecuta los 27 métodos de prueba existentes en seguimiento/tests.py y seguimiento/test_planning.py. No se cambiaron esas pruebas ni la lógica de negocio.
+El ejecutor comprueba la configuración de Django, detecta cambios de modelos sin migración y descubre los tests de seguimiento. Incluye los 27 métodos funcionales originales y 5 nuevos métodos de validación de SECRET_KEY en test_secret_key.py.
 
 Las pruebas abarcan páginas, evaluaciones, permisos, préstamos, rutinas, documentos, RUT, cuentas, portal del jugador, calendario, reportes y roles. Supabase Storage se prueba mediante respuestas simuladas, no contra la nube real.
 
