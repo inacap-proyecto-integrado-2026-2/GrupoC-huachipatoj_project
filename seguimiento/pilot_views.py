@@ -930,6 +930,7 @@ def staff_list(request):
         {
             'form': form,
             'staff_users': staff_users,
+            'student_accounts': User.objects.filter(is_staff=False).order_by('username'),
             'roles': STAFF_ROLES,
         },
     )
@@ -972,6 +973,37 @@ def staff_manage(request, pk):
         log(request, f'Restableció clave de cuenta técnica {target.username}')
         messages.success(request, f'Nueva contraseña temporal para {target.username}: {raw_password}')
     return redirect('equipo_tecnico')
+
+
+class DeleteAccountForm(forms.Form):
+    confirmacion = forms.CharField(label='Escribe el usuario exacto para confirmar', max_length=150)
+
+
+@club_admin
+def account_delete(request, pk):
+    target = get_object_or_404(User, pk=pk)
+    if target.pk == request.user.pk or target.is_superuser:
+        raise PermissionDenied
+    form = DeleteAccountForm(request.POST if request.method == 'POST' else None)
+    if request.method == 'POST' and form.is_valid():
+        with transaction.atomic():
+            target = get_object_or_404(User.objects.select_for_update(), pk=pk)
+            if target.pk == request.user.pk or target.is_superuser:
+                raise PermissionDenied
+            if form.cleaned_data['confirmacion'] != target.username:
+                form.add_error('confirmacion', 'El usuario no coincide. No se eliminó la cuenta.')
+            else:
+                username = target.username
+                log(request, f'Eliminó cuenta {target.pk} ({username}); conserva ficha deportiva e historial')
+                target.delete()
+                messages.success(request, f'Cuenta {username} eliminada. La ficha deportiva y su historial se conservaron.')
+                return redirect('equipo_tecnico')
+    return render(request, 'seguimiento/form.html', {
+        'form': form, 'titulo': f'Eliminar cuenta: {target.username}',
+        'submit_label': 'Eliminar cuenta definitivamente',
+        'ayuda': 'Esta acción es definitiva: elimina el acceso del usuario. Conserva jugadores, evaluaciones, rutinas y documentos. Los registros históricos vinculados a esta cuenta conservarán su contenido, pero su referencia al usuario quedará vacía. Para confirmar, escribe el usuario mostrado en el título.',
+        'cancel_url': reverse('equipo_tecnico'),
+    })
 
 
 def manifest_json(request):

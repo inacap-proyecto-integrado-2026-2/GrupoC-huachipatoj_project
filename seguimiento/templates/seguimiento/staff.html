@@ -74,6 +74,7 @@
                 {% endif %}
 
                 {% if not u.is_superuser and u.pk != user.pk %}
+                  <a class="button button-danger-outline button-sm" href="{% url 'eliminar_cuenta' u.pk %}">Eliminar cuenta</a>
                   <form class="inline" method="post" action="{% url 'gestionar_equipo_tecnico' u.pk %}" data-confirm="¿Seguro que deseas {% if u.is_active %}desactivar{% else %}activar{% endif %} la cuenta {{ u.username }}?">
                     {% csrf_token %}
                     <input type="hidden" name="action" value="toggle">
@@ -98,6 +99,22 @@
             <td colspan="4" class="empty">No hay cuentas de cuerpo técnico registradas.</td>
           </tr>
         {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  <div class="card table-wrap">
+    <h2>Cuentas de deportistas</h2>
+    <p>Eliminar una cuenta retira su acceso; conserva la ficha del jugador y su historial deportivo.</p>
+    <table>
+      <thead><tr><th>Usuario</th><th>Nombre</th><th>Estado</th><th>Acción</th></tr></thead>
+      <tbody>
+        {% for account in student_accounts %}
+          <tr>
+            <td>{{ account.username }}</td><td>{{ account.first_name|default:'Sin nombre' }}</td>
+            <td>{% if account.is_active %}Activa{% else %}Desactivada{% endif %}</td>
+            <td>{% if not account.is_superuser and account.pk != user.pk %}<a class="button button-danger-outline button-sm" href="{% url 'eliminar_cuenta' account.pk %}">Eliminar cuenta</a>{% endif %}</td>
+          </tr>
+        {% empty %}<tr><td colspan="4">No hay cuentas de deportistas.</td></tr>{% endfor %}
       </tbody>
     </table>
   </div>

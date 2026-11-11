@@ -105,8 +105,12 @@ Al desplegar cambios que incluyan nuevas migraciones de modelos, aplica `manage.
 ## Documentación adicional del repositorio
 
 - [`LEEME.md`](LEEME.md) — Guía operativa completa de módulos y ejecución local.
-- [`PRUEBAS_AUTOMATIZADAS.md`](PRUEBAS_AUTOMATIZADAS.md) — Alcance y límites del ejecutor aislado `PROBAR.cmd` (32 tests).
+- [`PRUEBAS_AUTOMATIZADAS.md`](PRUEBAS_AUTOMATIZADAS.md) — Alcance y límites del ejecutor aislado `PROBAR.cmd` (38 tests).
 - [`SEGURIDAD_SECRET_KEY.md`](SEGURIDAD_SECRET_KEY.md) — Requisitos y gestión segura de `SECRET_KEY` en Vercel y desarrollo local.
 - [`ALCANCE_ACTUAL.md`](ALCANCE_ACTUAL.md) — Alcance funcional vigente y límites declarados del proyecto.
 - [`COMPARTIR.md`](COMPARTIR.md) — Instrucciones para compartir en local o desplegar en Vercel + Supabase.
 - [`RECORRIDO_DEMO.md`](RECORRIDO_DEMO.md) — Guion paso a paso de demostración con datos `DEMO`.
+
+### Eliminar cuentas
+
+Solo Administrador puede eliminar cuentas desde Equipo técnico y permisos. Selecciona Eliminar cuenta y escribe el usuario exacto en la confirmación. No se permite eliminar la cuenta propia ni superusuarios. La eliminación retira el acceso y conserva la ficha deportiva, evaluaciones, rutinas y documentos; las referencias históricas al usuario eliminado quedan vacías. Se registra la acción del administrador en auditoría.

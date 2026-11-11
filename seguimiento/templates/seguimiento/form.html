@@ -14,7 +14,7 @@
     {% csrf_token %}
     {{ form.as_p }}
     <div class="form-actions">
-      <button type="submit">Guardar</button>
+      <button type="submit">{{ submit_label|default:'Guardar' }}</button>
       <a class="button button-secondary" href="{{ cancel_url|default:'/' }}">Cancelar</a>
     </div>
   </form>

@@ -40,5 +40,6 @@ urlpatterns = [
     path('rutinas/<int:pk>/completar/', v.student_complete_routine, name='completar_rutina'),
     path('auditoria/', v.audit_log, name='auditoria'),
     path('equipo-tecnico/', v.staff_list, name='equipo_tecnico'),
+    path('cuentas/<int:pk>/eliminar/', v.account_delete, name='eliminar_cuenta'),
     path('equipo-tecnico/<int:pk>/gestionar/', v.staff_manage, name='gestionar_equipo_tecnico'),
 ]
