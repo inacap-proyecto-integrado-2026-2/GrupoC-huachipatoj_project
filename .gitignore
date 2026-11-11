@@ -7,3 +7,8 @@ private_media/
 staticfiles/
 .env
 datos_backup.json
+
+# Entornos e informes de pruebas locales
+.venv-pruebas/
+.testdeps/
+resultados_pruebas/
