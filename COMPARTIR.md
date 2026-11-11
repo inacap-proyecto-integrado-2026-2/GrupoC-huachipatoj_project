@@ -4,7 +4,7 @@
 
 La aplicación está configurada para operar en la nube compartiendo una única base de datos PostgreSQL y un bucket privado en Supabase Storage:
 
-1. Entrega al cuerpo técnico la URL de producción en **Vercel** (p. ej. `https://...vercel.app`).
+1. Entrega al cuerpo técnico la URL de producción en **Vercel**: <https://huachipato-cdh.vercel.app/>.
 2. Ingresa con la cuenta administrador para crear las cuentas de entrenadores y asistentes en **Equipo técnico (`/equipo-tecnico/`)** según su rol (`Entrenador` o `Asistente`).
 3. En un teléfono Android/iPhone, abre el enlace en Chrome o Safari y elige **«Añadir a pantalla de inicio»** (utiliza `manifest.webmanifest` y el escudo `cdh-icon.svg`).
 4. Antes de cualquier despliegue con cambios de esquema en `main`, aplica primero las migraciones contra Supabase:
