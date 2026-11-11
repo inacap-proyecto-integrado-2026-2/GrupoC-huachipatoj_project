@@ -92,7 +92,7 @@ Para auditar cabeceras HTTP y disponibilidad GET de solo lectura sobre el sitio 
 
 Consulta la plantilla [`.env.example`](.env.example). En producción se requieren:
 
-- `SECRET_KEY` (clave privada aleatoria propia, idealmente >= 50 caracteres y sin prefijo `django-insecure-`)
+- `SECRET_KEY` (clave privada aleatoria propia; en Vercel/`DEBUG=False` exige al menos **50 caracteres útiles**, **5 distintos** y sin prefijo `django-insecure-` — ver [`SEGURIDAD_SECRET_KEY.md`](SEGURIDAD_SECRET_KEY.md))
 - `DEBUG=False`
 - `ALLOWED_HOSTS` y `CSRF_TRUSTED_ORIGINS` (ej. `.vercel.app` / `https://*.vercel.app`)
 - `DATABASE_URL` (PostgreSQL de Supabase — Transaction Pooler `:6543` con SSL)
@@ -105,7 +105,8 @@ Al desplegar cambios que incluyan nuevas migraciones de modelos, aplica `manage.
 ## Documentación adicional del repositorio
 
 - [`LEEME.md`](LEEME.md) — Guía operativa completa de módulos y ejecución local.
-- [`PRUEBAS_AUTOMATIZADAS.md`](PRUEBAS_AUTOMATIZADAS.md) — Alcance y límites del ejecutor aislado `PROBAR.cmd`.
+- [`PRUEBAS_AUTOMATIZADAS.md`](PRUEBAS_AUTOMATIZADAS.md) — Alcance y límites del ejecutor aislado `PROBAR.cmd` (32 tests).
+- [`SEGURIDAD_SECRET_KEY.md`](SEGURIDAD_SECRET_KEY.md) — Requisitos y gestión segura de `SECRET_KEY` en Vercel y desarrollo local.
 - [`ALCANCE_ACTUAL.md`](ALCANCE_ACTUAL.md) — Alcance funcional vigente y límites declarados del proyecto.
 - [`COMPARTIR.md`](COMPARTIR.md) — Instrucciones para compartir en local o desplegar en Vercel + Supabase.
 - [`RECORRIDO_DEMO.md`](RECORRIDO_DEMO.md) — Guion paso a paso de demostración con datos `DEMO`.
