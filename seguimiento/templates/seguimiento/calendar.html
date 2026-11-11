@@ -8,8 +8,8 @@
     </div>
     <div class="quick-actions">
       <a class="button" href="{% url 'programar_clase' %}">+ Programar clase</a>
-      <a class="button button-secondary" href="?fecha={{ prev|date:'Y-m-d' }}&vista={{ vista }}&categoria={{ categoria }}">Anterior</a>
-      <a class="button button-secondary" href="?fecha={{ next|date:'Y-m-d' }}&vista={{ vista }}&categoria={{ categoria }}">Siguiente</a>
+      <a class="button button-secondary" href="?fecha={{ prev|date:'Y-m-d' }}&vista={{ vista }}&categoria={{ categoria }}&estado={{ request.GET.estado|urlencode }}">Anterior</a>
+      <a class="button button-secondary" href="?fecha={{ next|date:'Y-m-d' }}&vista={{ vista }}&categoria={{ categoria }}&estado={{ request.GET.estado|urlencode }}">Siguiente</a>
     </div>
   </div>
 
@@ -36,7 +36,10 @@
           {% endfor %}
         </select>
       </label>
-      <button type="submit">Mostrar</button>
+      {{ filters.as_p }}
+      <p role="status">{{ result_count }} resultados{% if result_count == 0 %}: no hay coincidencias{% endif %}.</p>
+      <a class="button button-secondary" href="{{ request.path }}">Limpiar filtros</a>
+      <button type="submit">Aplicar filtros</button>
     </form>
   </div>
 

@@ -1,3 +1,4 @@
+from .filters import apply_filters
 import calendar
 import csv
 from datetime import date, timedelta
@@ -122,6 +123,7 @@ def schedule(request):
     category = request.GET.get('categoria', '')
     if category:
         rows = rows.filter(categoria=category)
+    rows, filters = apply_filters(request, rows, 'calendar')
     by_day = {}
     for s in rows:
         by_day.setdefault(s.fecha, []).append(s)
@@ -130,6 +132,7 @@ def schedule(request):
         request,
         'seguimiento/calendar.html',
         {
+            'filters': filters, 'result_count': rows.count(),
             'clases': rows,
             'grid': grid,
             'vista': mode,
@@ -213,10 +216,12 @@ def authorizations(request):
         )
     if estado in ('pendiente', 'vigente', 'revocada'):
         rows = rows.filter(estado=estado)
+    rows, filters = apply_filters(request, rows, 'authorizations')
     return render(
         request,
         'seguimiento/authorizations.html',
         {
+            'filters': filters, 'result_count': rows.count(),
             'autorizaciones': rows,
             'q': q,
             'estado': estado,

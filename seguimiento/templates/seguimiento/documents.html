@@ -26,10 +26,10 @@
           {% endfor %}
         </select>
       </label>
-      <button type="submit">Filtrar</button>
-      {% if q or estado %}
-        <a class="button button-secondary" href="{% url 'justificativos' %}">Limpiar</a>
-      {% endif %}
+      {{ filters.as_p }}
+      <p role="status">{{ result_count }} resultados{% if result_count == 0 %}: no hay coincidencias{% endif %}.</p>
+      <a class="button button-secondary" href="{{ request.path }}">Limpiar filtros</a>
+      <button type="submit">Aplicar filtros</button>
     </form>
   </div>
 

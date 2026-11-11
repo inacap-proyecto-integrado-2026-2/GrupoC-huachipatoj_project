@@ -1,3 +1,4 @@
+from .filters import apply_filters
 import csv
 import hashlib
 import ipaddress
@@ -416,7 +417,8 @@ def save_score(request):
 def players(request):
     q = request.GET.get('q', '').strip()
     categoria = request.GET.get('categoria', '').strip()
-    rows = list(_filtered_players(q, categoria))
+    filtered, filters = apply_filters(request, _filtered_players(q, categoria), 'players')
+    rows = list(filtered)
     ruts = [p.rut for p in rows]
     account_ruts = set(User.objects.filter(username__in=ruts).values_list('username', flat=True)) if ruts else set()
     sensitive = can_manage_sensitive(request.user)
@@ -428,6 +430,7 @@ def players(request):
         request,
         'seguimiento/players.html',
         {
+            'filters': filters, 'result_count': len(rows),
             'jugadores': rows,
             'q': q,
             'categoria': categoria,
@@ -440,7 +443,8 @@ def players(request):
 def export_players_csv(request):
     q = request.GET.get('q', '').strip()
     categoria = request.GET.get('categoria', '').strip()
-    rows = list(_filtered_players(q, categoria))
+    filtered, filters = apply_filters(request, _filtered_players(q, categoria), 'players')
+    rows = list(filtered)
     ruts = [p.rut for p in rows]
     account_ruts = set(User.objects.filter(username__in=ruts).values_list('username', flat=True)) if ruts else set()
     auth_by_player = _latest_auth_map(rows)
@@ -605,10 +609,13 @@ def documents(request):
         )
     if estado in ('pendiente', 'aprobado', 'rechazado'):
         qs = qs.filter(estado=estado)
+    qs, filters = apply_filters(request, qs, 'documents')
     return render(
         request,
         'seguimiento/documents.html',
         {
+            'filters': filters,
+            'result_count': qs.count(),
             'documentos': qs,
             'q': q,
             'estado': estado,
@@ -704,6 +711,7 @@ def inventory(request):
     pendientes = request.GET.get('pendientes', '').strip()
     active = {p.equipo_id: p for p in Prestamo.objects.filter(devuelto__isnull=True).select_related('jugador')}
     equipments = Equipo.objects.order_by('codigo')
+    equipments, filters = apply_filters(request, equipments, 'inventory')
     rows = []
     q_low = q.lower()
     for e in equipments:
@@ -715,7 +723,7 @@ def inventory(request):
             if q_low not in haystack:
                 continue
         rows.append((e, p))
-    prestamos_qs = Prestamo.objects.select_related('jugador', 'equipo').order_by('-fecha')
+    prestamos_qs = Prestamo.objects.filter(equipo_id__in=[e.pk for e, _ in rows]).select_related('jugador', 'equipo').order_by('-fecha')
     if q:
         prestamos_qs = prestamos_qs.filter(
             Q(equipo__codigo__icontains=q)
@@ -726,6 +734,8 @@ def inventory(request):
         request,
         'seguimiento/inventory.html',
         {
+            'filters': filters,
+            'result_count': len(rows),
             'filas': rows,
             'prestamos': prestamos_qs[:100],
             'q': q,
@@ -813,10 +823,13 @@ def routines(request):
         qs = qs.filter(completada=False)
     elif estado == 'completadas':
         qs = qs.filter(completada=True)
+    qs, filters = apply_filters(request, qs, 'routines')
     return render(
         request,
         'seguimiento/routines.html',
         {
+            'filters': filters,
+            'result_count': qs.count(),
             'rutinas': qs,
             'jugadores': Jugador.objects.order_by('nombre_completo'),
             'categorias': Jugador.CATEGORIAS,
@@ -873,10 +886,13 @@ def audit_log(request):
         qs = qs.filter(accion__icontains=q)
     if usuario_id.isdigit():
         qs = qs.filter(usuario_id=int(usuario_id))
+    qs, filters = apply_filters(request, qs, 'audit')
     return render(
         request,
         'seguimiento/audit.html',
         {
+            'filters': filters,
+            'result_count': qs.count(),
             'registros': qs[:150],
             'q': q,
             'usuario_sel': usuario_id,
