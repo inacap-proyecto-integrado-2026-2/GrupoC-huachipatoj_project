@@ -151,6 +151,10 @@ def _latest_auth_map(players):
 
 @coach
 def pista(request):
+    session_id = request.GET.get('sesion', '')
+    if session_id and (not session_id.isascii() or not session_id.isdecimal()
+                       or len(session_id) > 19 or not 0 < int(session_id) <= 9223372036854775807):
+        return HttpResponse('Identificador de sesión inválido.', status=400)
     sessions = ClaseEntrenamiento.objects.exclude(estado='cancelada').order_by('-fecha', '-id')
     session = (
         get_object_or_404(ClaseEntrenamiento, pk=request.GET['sesion'])
