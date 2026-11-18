@@ -105,7 +105,7 @@ Al desplegar cambios que incluyan nuevas migraciones de modelos, aplica `manage.
 ## Documentación adicional del repositorio
 
 - [`LEEME.md`](LEEME.md) — Guía operativa completa de módulos y ejecución local.
-- [`PRUEBAS_AUTOMATIZADAS.md`](PRUEBAS_AUTOMATIZADAS.md) — Alcance y límites del ejecutor aislado `PROBAR.cmd` (43 tests).
+- [`PRUEBAS_AUTOMATIZADAS.md`](PRUEBAS_AUTOMATIZADAS.md) — Alcance y límites del ejecutor aislado `PROBAR.cmd` (50 tests).
 - [`SEGURIDAD_SECRET_KEY.md`](SEGURIDAD_SECRET_KEY.md) — Requisitos y gestión segura de `SECRET_KEY` en Vercel y desarrollo local.
 - [`ALCANCE_ACTUAL.md`](ALCANCE_ACTUAL.md) — Alcance funcional vigente y límites declarados del proyecto.
 - [`COMPARTIR.md`](COMPARTIR.md) — Instrucciones para compartir en local o desplegar en Vercel + Supabase.
