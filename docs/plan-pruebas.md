@@ -173,6 +173,8 @@ Sistema de Seguimiento Deportivo CD Huachipato. Entrega prevista: 18 de noviembr
 
 ## Cierre para la exposición
 
+Actualización del 17 de noviembre: Diego reportó que la URL es pública y permite ingresar desde un celular. Se confirma únicamente ese alcance; la repetición pública de los 15 casos continúa pendiente. Ver [cuentas y accesos](cuentas-prueba.md).
+
 1. Confirmar que la URL pública corresponde a la versión revisada.
 2. Repetir CP-S1 a CP-S4 con cuentas ficticias de los perfiles indicados. No usar cuentas ni documentos reales para operaciones destructivas.
 3. En CP-S3, demostrar un **justificativo ya aprobado**: una clase Realizada no equivale a un registro cerrado. Si la pauta exige otra entidad cerrada, validar ese alcance con el docente.
