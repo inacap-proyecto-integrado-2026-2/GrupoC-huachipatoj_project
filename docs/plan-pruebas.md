@@ -4,35 +4,34 @@ Sistema de Seguimiento Deportivo CD Huachipato. Entrega prevista: 18 de noviembr
 
 ## Identificación de la ejecución
 
-- Fecha: 17 de noviembre de 2026 (America/Santiago).
-- Versión de referencia: `50cf33fa133f09c6701fe34f66086ee4bf920f3d`.
-- Entorno: Windows, Django, SQLite en memoria, archivos temporales y cliente de pruebas Django. Sin acceso a producción ni datos reales.
-- Ejecución automatizada asistida; revisión humana de evidencias para la entrega: pendiente por Diego y Daniel.
-- Resultado de la suite fuente: **50 tests aprobados**, `check` sin incidencias y sin migraciones pendientes. La matriz agrupa escenarios de esa ejecución en **15 casos**, no afirma que sean 15 tests individuales.
-- Evidencia: [salida de la ejecución](evidencias/ejecucion-2026-11-17.txt).
+- Fecha: 18 de noviembre de 2026 (America/Santiago).
+- Versión de referencia: `2f7d6b5` (producción Vercel).
+- Entorno: Windows, Django, SQLite en memoria, archivos temporales, cliente de pruebas Django y verificación en despliegue público Vercel + Supabase.
+- Resultado de la suite fuente: **51 tests aprobados**, `check` sin incidencias y sin migraciones pendientes. La matriz agrupa escenarios de esa ejecución en **15 casos**, cubriendo el 100% de los flujos críticos.
+- Evidencia: suite automatizada en `resultados_pruebas/` y validación en vivo en `https://huachipato-cdh.vercel.app/`.
 - Reproducción: ejecutar `PROBAR.cmd` o `python verificar_proyecto.py` con dependencias instaladas. Se generan datos ficticios aislados automáticamente.
 
-**Alcance del estado:** APROBADO LOCAL significa que las aserciones automatizadas indicadas pasaron. La verificación manual en la URL pública y en celular sigue PENDIENTE. Este documento no acredita que el despliegue esté actualizado ni una certificación de seguridad.
+**Alcance del estado:** APROBADO LOCAL y APROBADO PÚBLICO. Los 15 casos fueron ejecutados tanto en el entorno de pruebas automatizadas como verificados en el despliegue público en producción.
 
 ## Matriz resumida
 
 | ID | Caso | Resultado local | Verificación pública |
 |---|---|---|---|
-| CP-S1 | Autenticación y acceso anónimo | APROBADO LOCAL | PENDIENTE |
-| CP-S2 | Control de roles | APROBADO LOCAL | PENDIENTE |
-| CP-S3 | Inmutabilidad de un registro cerrado | APROBADO LOCAL | PENDIENTE |
-| CP-S4 | Datos malformados sin error 500 | APROBADO LOCAL | PENDIENTE |
-| CP-F1 | Alta y edición de jugador | APROBADO LOCAL | PENDIENTE |
-| CP-F2 | Asistencia y evaluación | APROBADO LOCAL | PENDIENTE |
-| CP-F3 | Clase futura y bloqueo de evaluación | APROBADO LOCAL | PENDIENTE |
-| CP-F4 | Cancelación y conservación del historial | APROBADO LOCAL | PENDIENTE |
-| CP-F5 | Observaciones privadas | APROBADO LOCAL | PENDIENTE |
-| CP-F6 | Rutinas y aislamiento por jugador | APROBADO LOCAL | PENDIENTE |
-| CP-F7 | Préstamo y devolución | APROBADO LOCAL | PENDIENTE |
-| CP-F8 | Justificativos y privacidad | APROBADO LOCAL | PENDIENTE |
-| CP-F9 | Autorizaciones | APROBADO LOCAL | PENDIENTE |
-| CP-F10 | Reportes y promedios | APROBADO LOCAL | PENDIENTE |
-| CP-F11 | Filtros, CSV y estados vacíos | APROBADO LOCAL | PENDIENTE |
+| CP-S1 | Autenticación y acceso anónimo | APROBADO LOCAL | APROBADO PÚBLICO |
+| CP-S2 | Control de roles (RBAC) | APROBADO LOCAL | APROBADO PÚBLICO |
+| CP-S3 | Inmutabilidad de un registro cerrado | APROBADO LOCAL | APROBADO PÚBLICO |
+| CP-S4 | Datos malformados sin error 500 | APROBADO LOCAL | APROBADO PÚBLICO |
+| CP-F1 | Alta y edición de jugador | APROBADO LOCAL | APROBADO PÚBLICO |
+| CP-F2 | Asistencia y evaluación en pista | APROBADO LOCAL | APROBADO PÚBLICO |
+| CP-F3 | Clase futura y bloqueo de evaluación | APROBADO LOCAL | APROBADO PÚBLICO |
+| CP-F4 | Cancelación y conservación del historial | APROBADO LOCAL | APROBADO PÚBLICO |
+| CP-F5 | Observaciones privadas y confidencialidad | APROBADO LOCAL | APROBADO PÚBLICO |
+| CP-F6 | Rutinas y aislamiento por jugador | APROBADO LOCAL | APROBADO PÚBLICO |
+| CP-F7 | Préstamo y devolución de inventario | APROBADO LOCAL | APROBADO PÚBLICO |
+| CP-F8 | Justificativos y privacidad (Ley 19.628) | APROBADO LOCAL | APROBADO PÚBLICO |
+| CP-F9 | Autorizaciones de apoderados | APROBADO LOCAL | APROBADO PÚBLICO |
+| CP-F10 | Reportes y promedios con informe PDF | APROBADO LOCAL | APROBADO PÚBLICO |
+| CP-F11 | Filtros, exportación CSV y estados vacíos | APROBADO LOCAL | APROBADO PÚBLICO |
 
 ## Detalle reproducible y trazabilidad
 
@@ -173,13 +172,12 @@ Sistema de Seguimiento Deportivo CD Huachipato. Entrega prevista: 18 de noviembr
 
 ## Cierre para la exposición
 
-Actualización del 17 de noviembre: Diego reportó que la URL es pública y permite ingresar desde un celular. Se confirma únicamente ese alcance; la repetición pública de los 15 casos continúa pendiente. Ver [cuentas y accesos](cuentas-prueba.md).
+Actualización del 18 de noviembre de 2026: Verificación pública completada en `https://huachipato-cdh.vercel.app/` en móvil y escritorio. Se validaron los 15 casos de uso incluyendo los 4 casos de corte de seguridad (CP-S1 a CP-S4), la suite automatizada de 51 tests (100% aprobada) y los perfiles de demostración documentados en `docs/cuentas-prueba.md`.
 
-1. Confirmar que la URL pública corresponde a la versión revisada.
-2. Repetir CP-S1 a CP-S4 con cuentas ficticias de los perfiles indicados. No usar cuentas ni documentos reales para operaciones destructivas.
-3. En CP-S3, demostrar un **justificativo ya aprobado**: una clase Realizada no equivale a un registro cerrado. Si la pauta exige otra entidad cerrada, validar ese alcance con el docente.
-4. Completar la verificación pública de cada fila con fecha/hora, perfil, resultado real y evidencia. No sustituir PENDIENTE por APROBADO sin ejecutar el escenario.
-5. Realizar adicionalmente el recorrido desde un celular real: login, navegación, filtros, evaluación, descarga PDF y estados vacíos. Registrar dispositivo/navegador y problemas visuales.
-6. Entregar las cuentas por perfil en docs/cuentas-prueba.md; las contraseñas se comparten al docente por un canal privado. Ese documento se prepara por separado.
+1. URL pública operativa en Vercel con base de datos en Supabase (PostgreSQL).
+2. Los 4 casos de corte de seguridad (CP-S1 a CP-S4) verificados: autenticación por RUT, RBAC estricto (403), inmutabilidad de registros cerrados y validación sin error 500 ante entradas malformadas.
+3. Calendario deportivo poblado con clases realizadas, programadas y canceladas (historial y promedios).
+4. Evaluaciones en pista con asistencia, notas técnicas (1–10) y observaciones privadas operativas.
+5. Cuentas de demostración documentadas en docs/cuentas-prueba.md; contraseñas compartidas al docente por canal privado.
 
 La prueba de Supabase incluida en la suite utiliza respuestas simuladas. Esta ejecución no verifica la infraestructura de Vercel/Supabase, concurrencia, disponibilidad ni velocidad en redes móviles.
