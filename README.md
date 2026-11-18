@@ -118,3 +118,7 @@ Solo Administrador puede eliminar cuentas desde Equipo técnico y permisos. Sele
 ### Filtros combinados
 
 Justificativos: categoría y fechas de carga o clase. Autorizaciones: categoría y fecha de autorización. Rutinas: fechas y pendientes vencidas. Inventario: conservación y disponibilidad actual (el historial mostrado corresponde a los equipos filtrados). Calendario: estado combinado con período y categoría. Jugadores: estado de cuenta, también aplicado al CSV. Auditoría: fechas. Los rangos incluyen ambos días, muestran errores de validación y se pueden limpiar desde cada pantalla.
+
+### Evidencias de entrega
+
+[Plan de pruebas: 15 casos con resultados locales y evidencia](docs/plan-pruebas.md). La validación pública y móvil se registra por separado; no se presume aprobada por la suite local.
