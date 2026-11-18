@@ -1,0 +1,115 @@
+
+>>> check
+System check identified no issues (0 silenced).
+Código de salida: 0
+
+>>> makemigrations --check --dry-run
+No changes detected
+Código de salida: 0
+
+>>> test seguimiento --verbosity 2 --noinput
+Creating test database for alias 'default' ('file:memorydb_default?mode=memory&cache=shared')...
+
+Found 60 test(s).
+Operations to perform:
+  Synchronize unmigrated apps: messages, staticfiles
+  Apply all migrations: admin, auth, contenttypes, seguimiento, sessions
+Synchronizing apps without migrations:
+  Creating tables...
+    Running deferred SQL...
+Running migrations:
+  Applying contenttypes.0001_initial... OK
+  Applying auth.0001_initial... OK
+  Applying admin.0001_initial... OK
+  Applying admin.0002_logentry_remove_auto_add... OK
+  Applying admin.0003_logentry_add_action_flag_choices... OK
+  Applying contenttypes.0002_remove_content_type_name... OK
+  Applying auth.0002_alter_permission_name_max_length... OK
+  Applying auth.0003_alter_user_email_max_length... OK
+  Applying auth.0004_alter_user_username_opts... OK
+  Applying auth.0005_alter_user_last_login_null... OK
+  Applying auth.0006_require_contenttypes_0002... OK
+  Applying auth.0007_alter_validators_add_error_messages... OK
+  Applying auth.0008_alter_user_username_max_length... OK
+  Applying auth.0009_alter_user_last_name_max_length... OK
+  Applying auth.0010_alter_group_name_max_length... OK
+  Applying auth.0011_update_proxy_permissions... OK
+  Applying auth.0012_alter_user_first_name_max_length... OK
+  Applying seguimiento.0001_initial... OK
+  Applying seguimiento.0002_jugador_observaciones... OK
+  Applying seguimiento.0003_equipo_auditoria_justificativo_rutina_prestamo... OK
+  Applying seguimiento.0004_claseentrenamiento_categoria_and_more... OK
+  Applying seguimiento.0005_autorizacion_hash_documento_autorizacion_ip_registro_and_more... OK
+  Applying sessions.0001_initial...test_anonymous_users_redirected_on_all_protected_routes (seguimiento.test_access_control.AccessControlTests.test_anonymous_users_redirected_on_all_protected_routes) ... ok
+test_assistant_rbac_boundary_allowed_and_denied (seguimiento.test_access_control.AccessControlTests.test_assistant_rbac_boundary_allowed_and_denied) ... ok
+test_club_admin_and_superuser_privilege_hierarchy (seguimiento.test_access_control.AccessControlTests.test_club_admin_and_superuser_privilege_hierarchy) ... ok
+test_coach_titular_rbac_boundary_allowed_and_denied (seguimiento.test_access_control.AccessControlTests.test_coach_titular_rbac_boundary_allowed_and_denied) ... ok
+test_csrf_enforced_on_sensitive_state_changes (seguimiento.test_access_control.AccessControlTests.test_csrf_enforced_on_sensitive_state_changes) ... ok
+test_deactivated_account_blocked_from_login_and_existing_session (seguimiento.test_access_control.AccessControlTests.test_deactivated_account_blocked_from_login_and_existing_session) ... ok
+test_horizontal_isolation_between_students_anti_idor (seguimiento.test_access_control.AccessControlTests.test_horizontal_isolation_between_students_anti_idor) ... ok
+test_post_only_endpoints_reject_get_with_405 (seguimiento.test_access_control.AccessControlTests.test_post_only_endpoints_reject_get_with_405) ... ok
+test_student_denied_all_staff_routes_get_and_post (seguimiento.test_access_control.AccessControlTests.test_student_denied_all_staff_routes_get_and_post) ... ok
+test_admin_deletes_access_but_preserves_sports_history (seguimiento.test_account_delete.AccountDeletionTests.test_admin_deletes_access_but_preserves_sports_history) ... ok
+test_get_and_incorrect_confirmation_never_delete (seguimiento.test_account_delete.AccountDeletionTests.test_get_and_incorrect_confirmation_never_delete) ... ok
+test_non_admin_roles_are_denied_even_with_direct_post (seguimiento.test_account_delete.AccountDeletionTests.test_non_admin_roles_are_denied_even_with_direct_post) ... ok
+test_post_requires_csrf (seguimiento.test_account_delete.AccountDeletionTests.test_post_requires_csrf) ... ok
+test_self_and_superuser_are_protected (seguimiento.test_account_delete.AccountDeletionTests.test_self_and_superuser_are_protected) ... ok
+test_staff_deletion_and_account_list (seguimiento.test_account_delete.AccountDeletionTests.test_staff_deletion_and_account_list) ... ok
+test_accounts_and_csv_match (seguimiento.test_filters.FilterTests.test_accounts_and_csv_match) ... ok
+test_date_boundaries_and_overdue (seguimiento.test_filters.FilterTests.test_date_boundaries_and_overdue) ... ok
+test_date_forms_render_and_reject_invalid_ranges (seguimiento.test_filters.FilterTests.test_date_forms_render_and_reject_invalid_ranges) ... ok
+test_document_date_type_category_and_inclusive_end (seguimiento.test_filters.FilterTests.test_document_date_type_category_and_inclusive_end) ... ok
+test_inventory_and_calendar_combined_filters (seguimiento.test_filters.FilterTests.test_inventory_and_calendar_combined_filters) ... ok
+test_calendar_extreme_dates_show_validation (seguimiento.test_input_security.InputSecurityTests.test_calendar_extreme_dates_show_validation) ... ok
+test_existing_and_missing_session (seguimiento.test_input_security.InputSecurityTests.test_existing_and_missing_session) ... ok
+test_extreme_class_dates_do_not_create_partial_series (seguimiento.test_input_security.InputSecurityTests.test_extreme_class_dates_do_not_create_partial_series) ... ok
+test_invalid_session_identifiers (seguimiento.test_input_security.InputSecurityTests.test_invalid_session_identifiers) ... ok
+test_long_text_and_quotes_are_validated (seguimiento.test_input_security.InputSecurityTests.test_long_text_and_quotes_are_validated) ... ok
+test_malformed_score_payloads_never_change_data (seguimiento.test_input_security.InputSecurityTests.test_malformed_score_payloads_never_change_data) ... ok
+test_reviewed_document_cannot_be_reopened_or_reversed (seguimiento.test_input_security.InputSecurityTests.test_reviewed_document_cannot_be_reopened_or_reversed) ... ok
+test_authorization_upload_edit_and_private_download (seguimiento.test_planning.PlanningTests.test_authorization_upload_edit_and_private_download) ... ok
+test_average_and_month_category_filter (seguimiento.test_planning.PlanningTests.test_average_and_month_category_filter) ... ok
+test_cancel_preserves_history_and_excludes_average (seguimiento.test_planning.PlanningTests.test_cancel_preserves_history_and_excludes_average) ... ok
+test_create_future_and_block_evaluation (seguimiento.test_planning.PlanningTests.test_create_future_and_block_evaluation) ... ok
+test_delete_scheduled_session_and_protect_realized_or_evaluated (seguimiento.test_planning.PlanningTests.test_delete_scheduled_session_and_protect_realized_or_evaluated) ... ok
+test_edit_form_preserves_existing_values (seguimiento.test_planning.PlanningTests.test_edit_form_preserves_existing_values) ... ok
+test_new_pages_and_invalid_filters (seguimiento.test_planning.PlanningTests.test_new_pages_and_invalid_filters) ... ok
+test_private_observation_not_in_student_or_pdf (seguimiento.test_planning.PlanningTests.test_private_observation_not_in_student_or_pdf) ... ok
+test_score_preserves_comment_and_snapshot (seguimiento.test_planning.PlanningTests.test_score_preserves_comment_and_snapshot) ... ok
+test_rbac_roles_and_staff_management_ui (seguimiento.tests.Block3Tests.test_rbac_roles_and_staff_management_ui) ... ok
+test_upload_4mb_limit_sha256_cleanup_and_review_traceability (seguimiento.tests.Block3Tests.test_upload_4mb_limit_sha256_cleanup_and_review_traceability) ... ok
+test_weekly_recurrence_inventory_search_student_portal_and_headers (seguimiento.tests.Block3Tests.test_weekly_recurrence_inventory_search_student_portal_and_headers) ... ok
+test_create_update_player (seguimiento.tests.PilotTests.test_create_update_player) ... ok
+test_dashboard_metrics_and_sidebar_badges (seguimiento.tests.PilotTests.test_dashboard_metrics_and_sidebar_badges) ... ok
+test_demo_is_repeatable_and_preserves_edits (seguimiento.tests.PilotTests.test_demo_is_repeatable_and_preserves_edits) ... ok
+test_documents_and_review (seguimiento.tests.PilotTests.test_documents_and_review) ... ok
+test_filters_csv_exports_and_audit_log (seguimiento.tests.PilotTests.test_filters_csv_exports_and_audit_log) ... ok
+test_inventory_loan_return (seguimiento.tests.PilotTests.test_inventory_loan_return) ... ok
+test_pages (seguimiento.tests.PilotTests.test_pages) ... ok
+test_password_change_flow (seguimiento.tests.PilotTests.test_password_change_flow) ... ok
+test_permissions (seguimiento.tests.PilotTests.test_permissions) ... ok
+test_player_portal_account_and_rut_login (seguimiento.tests.PilotTests.test_player_portal_account_and_rut_login) ... ok
+test_routine_and_student_isolation (seguimiento.tests.PilotTests.test_routine_and_student_isolation) ... ok
+test_rut_modulo_11_validation (seguimiento.tests.PilotTests.test_rut_modulo_11_validation) ... ok
+test_scores_persist_and_validate (seguimiento.tests.PilotTests.test_scores_persist_and_validate) ... ok
+test_static_assets_separated_from_html (seguimiento.tests.PilotTests.test_static_assets_separated_from_html) ... ok
+test_student_portal_chart_routines_and_justificativo (seguimiento.tests.PilotTests.test_student_portal_chart_routines_and_justificativo) ... ok
+test_supabase_storage_backend (seguimiento.tests.PilotTests.test_supabase_storage_backend) ... ok
+test_error_does_not_disclose_value (seguimiento.test_secret_key.SecretKeyConfigurationTests.test_error_does_not_disclose_value) ... ok
+test_local_development_still_starts (seguimiento.test_secret_key.SecretKeyConfigurationTests.test_local_development_still_starts) ... ok
+test_production_rejects_missing_and_weak_keys (seguimiento.test_secret_key.SecretKeyConfigurationTests.test_production_rejects_missing_and_weak_keys) ... ok
+test_valid_key_is_preserved_exactly (seguimiento.test_secret_key.SecretKeyConfigurationTests.test_valid_key_is_preserved_exactly) ... ok
+test_vercel_rejects_missing_key_even_with_debug (seguimiento.test_secret_key.SecretKeyConfigurationTests.test_vercel_rejects_missing_key_even_with_debug) ... ok
+
+----------------------------------------------------------------------
+Ran 60 tests in 31.442s
+
+OK
+Destroying test database for alias 'default' ('file:memorydb_default?mode=memory&cache=shared')...
+
+ OK
+System check identified no issues (0 silenced).
+Código de salida: 0
+
+RESULTADO: COMPROBACIONES SUPERADAS
+Alcance: pruebas automatizadas Django en SQLite. No valida navegador, carga, infraestructura real ni certificación ISO/OWASP.
