@@ -6,26 +6,26 @@ URL pública: https://huachipato-cdh.vercel.app/
 
 ## Inventario confirmado y pendientes
 
-La información siguiente procede de capturas aportadas por Diego. Ver una cuenta activa no equivale a haber verificado su inicio de sesión con el docente.
+La información siguiente procede de capturas aportadas por Diego y de su confirmación del 17 de noviembre de 2026 de que creó las tres cuentas demo con los usuarios y roles sugeridos. Ver una cuenta activa no equivale a haber verificado su inicio de sesión con el docente.
 
 | Perfil | Usuario | Evidencia disponible | Preparación para el docente |
 |---|---|---|---|
 | Administrador del club | `Diego` | Cuenta activa, rol Administrador; sesión administrativa visible. | Cuenta existente del integrante. Preferir una cuenta ficticia dedicada al docente antes de entregar credenciales. |
 | Superusuario / administrador | `Daniel` | Cuenta activa con distintivo Superusuario. | Reservada a administración del proyecto; no necesaria para la demo. |
-| Entrenador titular | Pendiente de confirmar o crear | El rol aparece en el selector, pero no hay una cuenta de ese perfil visible en las capturas. | Propuesta de usuario: `demo.entrenador`. No se afirma que exista. |
-| Profesor asistente | Pendiente de confirmar o crear | El rol aparece en el selector, pero no hay una cuenta de ese perfil visible en las capturas. | Propuesta de usuario: `demo.asistente`. No se afirma que exista. |
+| Administrador de prueba | `demo.admin` | Creación confirmada por Diego. | Cuenta destinada al docente; inicio de sesión y permisos pendientes de ensayo. |
+| Entrenador titular | `demo.entrenador` | Creación confirmada por Diego. | Inicio de sesión y permisos pendientes de ensayo. |
+| Profesor asistente | `demo.asistente` | Creación confirmada por Diego. | Inicio de sesión y permisos pendientes de ensayo. |
 | Deportista | Identificador oculto; entrega privada | Una cuenta activa aparece en la lista de deportistas. | Confirmar si es ficticia y entregar su usuario al docente por un canal privado. No publicar RUT personales. |
 
-**Estado de la exigencia «una cuenta de prueba por perfil»: pendiente de completar.** Los roles disponibles y las cuentas realmente creadas son cosas distintas.
+**Estado:** creación de las tres cuentas técnicas demo confirmada. Falta confirmar la cuenta ficticia de deportista y ensayar el ingreso y las restricciones de cada perfil. No se afirma que estos ensayos públicos estén ejecutados.
 
-## Preparación de las cuentas faltantes
+## Preparación final para el docente
 
-1. Un administrador abre Equipo técnico y permisos.
-2. Crea una cuenta ficticia con rol Entrenador Titular y otra con rol Profesor Asistente. Puede usar los nombres propuestos si están disponibles.
-3. Para la prueba administrativa, se recomienda crear `demo.admin` con rol Administrador del Club, evitando entregar la cuenta personal de un integrante. Este usuario también es solo una propuesta hasta confirmar su creación.
-4. Para deportista, utilizar una ficha ficticia de demostración con acceso habilitado. No usar un RUT real de un menor para la exposición.
-5. Guardar las contraseñas temporales por un canal privado, cerrar sesión y verificar cada acceso antes de la exposición. No pegar contraseñas en este archivo, commits, issues o capturas públicas.
-6. Actualizar esta tabla con los usuarios confirmados, la fecha y el resultado del ensayo. El superusuario no reemplaza la prueba del perfil mínimo.
+1. Usar `demo.admin`, `demo.entrenador` y `demo.asistente` para la evaluación, conservando las cuentas personales de los integrantes.
+2. Confirmar qué cuenta ficticia de deportista se entregará y comunicar su usuario por privado si corresponde a un identificador personal.
+3. Cerrar sesión e ingresar con cada cuenta; comprobar una acción permitida y una denegada de la tabla siguiente, también mediante URL directa.
+4. Registrar fecha y resultado del ensayo, sin marcar como aprobado lo que no se haya ejecutado.
+5. Entregar las contraseñas al docente por un canal privado. No incluirlas en este archivo, commits, issues o capturas públicas.
 
 ## Recorrido por perfil
 
