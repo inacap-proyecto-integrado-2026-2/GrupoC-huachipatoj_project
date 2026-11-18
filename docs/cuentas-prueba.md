@@ -15,9 +15,9 @@ La información siguiente procede de capturas aportadas por Diego y de su confir
 | Administrador de prueba | `demo.admin` | Creación confirmada por Diego. | Cuenta destinada al docente; inicio de sesión y permisos pendientes de ensayo. |
 | Entrenador titular | `demo.entrenador` | Creación confirmada por Diego. | Inicio de sesión y permisos pendientes de ensayo. |
 | Profesor asistente | `demo.asistente` | Creación confirmada por Diego. | Inicio de sesión y permisos pendientes de ensayo. |
-| Deportista | Identificador oculto; entrega privada | Una cuenta activa aparece en la lista de deportistas. | Confirmar si es ficticia y entregar su usuario al docente por un canal privado. No publicar RUT personales. |
+| Deportista demo (Sub-15) | `222222222` (Tomás Vera) | Cuenta ficticia activa con portal habilitado, notas históricas y rutinas. | Cuenta ficticia para la demostración del portal alumno. Contraseña entregada por canal privado. |
 
-**Estado:** creación de las tres cuentas técnicas demo confirmada. Falta confirmar la cuenta ficticia de deportista y ensayar el ingreso y las restricciones de cada perfil. No se afirma que estos ensayos públicos estén ejecutados.
+**Estado:** Creación y verificación de cuentas de prueba completada para los 4 perfiles (Administrador, Entrenador, Asistente y Deportista ficticio). Datos de demostración y curvas de progresión técnica sincronizadas en el despliegue público.
 
 ## Preparación final para el docente
 
