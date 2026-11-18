@@ -41,6 +41,14 @@ class SessionForm(forms.ModelForm):
     def clean(self):
         data = super().clean()
         semanas = data.get('semanas') or 1
+        day = data.get('fecha')
+        if day:
+            try:
+                last_day = day + timedelta(weeks=semanas - 1)
+                if not (2 <= day.year <= 9998 and 2 <= last_day.year <= 9998):
+                    raise OverflowError
+            except OverflowError:
+                self.add_error('fecha', 'La fecha y sus repeticiones deben quedar entre los años 2 y 9998.')
         if data.get('estado') == 'realizada' and data.get('fecha') and data['fecha'] > timezone.localdate():
             self.add_error('estado', 'Una clase futura no puede marcarse realizada.')
         if not self.original and semanas > 1 and data.get('estado') == 'realizada':
@@ -101,8 +109,11 @@ def session_edit(request, pk=None):
 def schedule(request):
     try:
         anchor = date.fromisoformat(request.GET.get('fecha', timezone.localdate().isoformat()))
+        if not 2 <= anchor.year <= 9998:
+            raise ValueError
     except ValueError:
         anchor = timezone.localdate()
+        messages.error(request, 'Fecha inválida o fuera del rango admitido (años 2 a 9998). Se muestra la fecha actual.')
     mode = request.GET.get('vista', 'mes')
     mode = mode if mode in ('mes', 'semana', 'lista') else 'mes'
     month_start = anchor.replace(day=1)
