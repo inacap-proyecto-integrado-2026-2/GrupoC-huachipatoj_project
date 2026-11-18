@@ -93,14 +93,46 @@ def session_edit(request, pk=None):
         else:
             messages.success(request, 'Clase guardada. Las cancelaciones conservan su historial.')
         return redirect('/calendario/?fecha=' + obj.fecha.isoformat())
+    context = {
+        'form': form,
+        'titulo': 'Editar clase' if pk else 'Programar clase',
+        'ayuda': 'Programa una clase individual o repítela semanalmente hasta 12 fechas. Marca Realizada al impartirla; Cancelada conserva los registros y los excluye de promedios.',
+        'cancel_url': reverse('calendario'),
+    }
+    if instance and instance.estado == 'programada' and not instance.evaluacion_set.exists():
+        context['delete_url'] = reverse('eliminar_clase', args=[instance.pk])
+    return render(request, 'seguimiento/form.html', context)
+
+
+@coach
+def session_delete(request, pk):
+    target = get_object_or_404(ClaseEntrenamiento, pk=pk)
+    if target.estado != 'programada' or target.evaluacion_set.exists():
+        messages.error(
+            request,
+            'Solo se pueden eliminar clases programadas sin evaluaciones. '
+            'Para preservar el historial deportivo de una clase realizada o cancelada, '
+            'utiliza el cambio de estado.'
+        )
+        return redirect('/calendario/?fecha=' + target.fecha.isoformat())
+
+    if request.method == 'POST':
+        fecha = target.fecha.isoformat()
+        cat_desc = target.get_categoria_display() or 'general'
+        with transaction.atomic():
+            log(request, f'Eliminó clase programada {target.pk} ({cat_desc} - {target.fecha} {target.hora})')
+            target.delete()
+        messages.success(request, 'Clase programada eliminada correctamente.')
+        return redirect('/calendario/?fecha=' + fecha)
+
     return render(
         request,
         'seguimiento/form.html',
         {
-            'form': form,
-            'titulo': 'Editar clase' if pk else 'Programar clase',
-            'ayuda': 'Programa una clase individual o repítela semanalmente hasta 12 fechas. Marca Realizada al impartirla; Cancelada conserva los registros y los excluye de promedios.',
-            'cancel_url': reverse('calendario'),
+            'titulo': 'Eliminar clase programada',
+            'ayuda': f'¿Confirmas la eliminación de la clase del {target.fecha} a las {target.hora} ({target.get_categoria_display() or "categoría general"})? Esta acción es definitiva.',
+            'submit_label': 'Confirmar eliminación de la clase',
+            'cancel_url': reverse('calendario') + f'?fecha={target.fecha.isoformat()}',
         },
     )
 

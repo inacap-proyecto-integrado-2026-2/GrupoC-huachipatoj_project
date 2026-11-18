@@ -93,3 +93,28 @@ class PlanningTests(TestCase):
         self.assertEqual(form['estado'].value(),'realizada')
         self.assertEqual(form['fecha'].value(),s.fecha)
         self.assertEqual(form['profesor'].value(),'Entrenador original')
+
+    def test_delete_scheduled_session_and_protect_realized_or_evaluated(self):
+        scheduled = self.session(estado='programada', fecha=self.today + timedelta(days=2))
+        res_get = self.client.get(f'/clases/{scheduled.pk}/editar/')
+        self.assertContains(res_get, f'/clases/{scheduled.pk}/eliminar/')
+        res_del_page = self.client.get(f'/clases/{scheduled.pk}/eliminar/')
+        self.assertEqual(res_del_page.status_code, 200)
+        res_delete = self.client.post(f'/clases/{scheduled.pk}/eliminar/')
+        self.assertEqual(res_delete.status_code, 302)
+        self.assertFalse(ClaseEntrenamiento.objects.filter(pk=scheduled.pk).exists())
+
+        realized = self.session(estado='realizada', fecha=self.today)
+        res_realized = self.client.post(f'/clases/{realized.pk}/eliminar/')
+        self.assertEqual(res_realized.status_code, 302)
+        self.assertTrue(ClaseEntrenamiento.objects.filter(pk=realized.pk).exists())
+
+        scheduled_eval = self.session(estado='programada', fecha=self.today + timedelta(days=1))
+        self.evaluation(scheduled_eval)
+        res_eval = self.client.post(f'/clases/{scheduled_eval.pk}/eliminar/')
+        self.assertEqual(res_eval.status_code, 302)
+        self.assertTrue(ClaseEntrenamiento.objects.filter(pk=scheduled_eval.pk).exists())
+
+        scheduled_student = self.session(estado='programada', fecha=self.today + timedelta(days=3))
+        self.client.force_login(self.student)
+        self.assertEqual(self.client.post(f'/clases/{scheduled_student.pk}/eliminar/').status_code, 403)

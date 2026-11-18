@@ -7,6 +7,7 @@ urlpatterns = [
     path('calendario/', plan.schedule, name='calendario'),
     path('clases/nueva/', plan.session_edit, name='programar_clase'),
     path('clases/<int:pk>/editar/', plan.session_edit, name='editar_clase'),
+    path('clases/<int:pk>/eliminar/', plan.session_delete, name='eliminar_clase'),
     path('evaluaciones/<int:pk>/observacion/', plan.observation, name='observacion'),
     path('reportes/', plan.reports, name='reportes'),
     path('autorizaciones/', plan.authorizations, name='autorizaciones'),

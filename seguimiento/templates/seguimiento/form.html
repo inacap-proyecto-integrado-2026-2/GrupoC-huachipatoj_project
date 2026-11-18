@@ -16,6 +16,9 @@
     <div class="form-actions">
       <button type="submit">{{ submit_label|default:'Guardar' }}</button>
       <a class="button button-secondary" href="{{ cancel_url|default:'/' }}">Cancelar</a>
+      {% if delete_url %}
+        <a class="button button-danger-outline" href="{{ delete_url }}" style="margin-left: auto;">Eliminar clase</a>
+      {% endif %}
     </div>
   </form>
 {% endblock %}
