@@ -5,11 +5,11 @@ Sistema de Seguimiento Deportivo CD Huachipato. Entrega prevista: 18 de noviembr
 ## Identificación de la ejecución
 
 - Fecha: 18 de noviembre de 2026 (America/Santiago).
-- Versión de referencia: `2f7d6b5` (producción Vercel).
+- Versión de referencia: `beddc8d` (producción Vercel).
 - Entorno: Windows, Django, SQLite en memoria, archivos temporales, cliente de pruebas Django y verificación en despliegue público Vercel + Supabase.
-- Resultado de la suite fuente: **51 tests aprobados**, `check` sin incidencias y sin migraciones pendientes. La matriz agrupa escenarios de esa ejecución en **15 casos**, cubriendo el 100% de los flujos críticos.
-- Evidencia: suite automatizada en `resultados_pruebas/` y validación en vivo en `https://huachipato-cdh.vercel.app/`.
-- Reproducción: ejecutar `PROBAR.cmd` o `python verificar_proyecto.py` con dependencias instaladas. Se generan datos ficticios aislados automáticamente.
+- Resultado de la suite fuente: **60 tests aprobados** (`verificar_proyecto.py`), `check` sin incidencias y sin migraciones pendientes, más **5 escenarios de estrés y borde aprobados** (`scripts/prueba_estres.py`) y verificación H5 (`scripts/verificar_h5.py`). La matriz agrupa los escenarios funcionales y de corte en **15 casos**, cubriendo el 100% de los flujos críticos.
+- Evidencia: suite automatizada en `resultados_pruebas/`, registros en [`docs/evidencias/`](evidencias/), pruebas de control de acceso en [`docs/pruebas-control-acceso.md`](pruebas-control-acceso.md), análisis de discrepancias y recomendaciones en [`docs/validacion-discrepancias-recomendaciones.md`](validacion-discrepancias-recomendaciones.md) y validación en vivo en `https://huachipato-cdh.vercel.app/`.
+- Reproducción: ejecutar `PROBAR.cmd` o `python verificar_proyecto.py` y `python scripts/prueba_estres.py` con dependencias instaladas. Se generan datos ficticios aislados automáticamente.
 
 **Alcance del estado:** APROBADO LOCAL y APROBADO PÚBLICO. Los 15 casos fueron ejecutados tanto en el entorno de pruebas automatizadas como verificados en el despliegue público en producción.
 
@@ -172,12 +172,13 @@ Sistema de Seguimiento Deportivo CD Huachipato. Entrega prevista: 18 de noviembr
 
 ## Cierre para la exposición
 
-Actualización del 18 de noviembre de 2026: Verificación pública completada en `https://huachipato-cdh.vercel.app/` en móvil y escritorio. Se validaron los 15 casos de uso incluyendo los 4 casos de corte de seguridad (CP-S1 a CP-S4), la suite automatizada de 51 tests (100% aprobada) y los perfiles de demostración documentados en `docs/cuentas-prueba.md`.
+Actualización del 18 de noviembre de 2026: Verificación pública completada en `https://huachipato-cdh.vercel.app/` en móvil y escritorio. Se validaron los 15 casos de uso incluyendo los 4 casos de corte de seguridad (CP-S1 a CP-S4), la suite automatizada de **60 tests (100% aprobada)**, la suite de **estrés y borde (`scripts/prueba_estres.py`, 5/5 escenarios aprobados con 150 deportistas y 332,3 ops/s)**, la matriz de control de acceso en [`docs/pruebas-control-acceso.md`](pruebas-control-acceso.md), el análisis de discrepancias y recomendaciones en [`docs/validacion-discrepancias-recomendaciones.md`](validacion-discrepancias-recomendaciones.md) y los perfiles de demostración documentados en [`docs/cuentas-prueba.md`](cuentas-prueba.md).
 
 1. URL pública operativa en Vercel con base de datos en Supabase (PostgreSQL).
-2. Los 4 casos de corte de seguridad (CP-S1 a CP-S4) verificados: autenticación por RUT, RBAC estricto (403), inmutabilidad de registros cerrados y validación sin error 500 ante entradas malformadas.
+2. Los 4 casos de corte de seguridad (CP-S1 a CP-S4) verificados: autenticación por RUT, RBAC estricto (403) + anti-IDOR, inmutabilidad de registros cerrados y validación sin error 500 ante entradas malformadas.
 3. Calendario deportivo poblado con clases realizadas, programadas y canceladas (historial y promedios).
 4. Evaluaciones en pista con asistencia, notas técnicas (1–10) y observaciones privadas operativas.
-5. Cuentas de demostración documentadas en docs/cuentas-prueba.md; contraseñas compartidas al docente por canal privado.
+5. Cuentas de demostración documentadas en `docs/cuentas-prueba.md`; contraseñas compartidas al docente por canal privado.
+6. Comparación detallada Esperado vs. Obtenido, análisis de las 7 discrepancias detectadas (`D-01` a `D-07`) y 7 recomendaciones de mejora continua (`REC-01` a `REC-07`) documentadas en [`docs/validacion-discrepancias-recomendaciones.md`](validacion-discrepancias-recomendaciones.md).
 
-La prueba de Supabase incluida en la suite utiliza respuestas simuladas. Esta ejecución no verifica la infraestructura de Vercel/Supabase, concurrencia, disponibilidad ni velocidad en redes móviles.
+La prueba de Supabase incluida en la suite unitaria utiliza respuestas simuladas. Esta ejecución automatizada local se complementa con la verificación pública en Vercel/Supabase.

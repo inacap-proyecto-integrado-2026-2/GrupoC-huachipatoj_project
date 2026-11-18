@@ -1,0 +1,29 @@
+======================================================================
+PRUEBA DE ESTRÉS, VOLUMEN Y BORDE — SISTEMA DEPORTIVO CD HUACHIPATO
+======================================================================
+Entorno: SQLite en memoria aislado (miproyecto.test_settings)
+
+>>> PE-01: Carga masiva de plantilla, sesiones, evaluaciones e inventario
+  Semilla completada en 63.65 ms: 150 jugadores, 24 clases, 1000 evaluaciones, 60 equipos, 150 rutinas.
+
+>>> PE-02: Ráfaga de 200 escrituras JSON en pista (POST /evaluaciones/guardar/)
+  200/200 HTTP 200 OK | throughput=332.3 ops/s | prom=3.01 ms | p50=2.69 ms | p95=3.58 ms | p99=4.27 ms | max=45.19 ms
+
+>>> PE-03: Latencia bajo volumen en vistas principales (15 iteraciones c/u)
+  - GET / (Dashboard con 1.200+ evaluaciones): HTTP 200 | prom=14.36 ms | p95=21.43 ms | max=38.15 ms | SLA<1000ms=OK
+  - GET /pista/ (150 deportistas): HTTP 200 | prom=17.11 ms | p95=19.0 ms | max=20.02 ms | SLA<1000ms=OK
+  - GET /jugadores/ (150 deportistas + filtros): HTTP 200 | prom=13.27 ms | p95=15.68 ms | max=17.21 ms | SLA<1000ms=OK
+  - GET /jugadores/exportar/ (CSV 150 deportistas): HTTP 200 | prom=6.16 ms | p95=7.3 ms | max=7.63 ms | SLA<1000ms=OK
+  - GET /calendario/?vista=mes (24 sesiones): HTTP 200 | prom=9.37 ms | p95=10.34 ms | max=10.79 ms | SLA<1000ms=OK
+  - GET /inventario/ (60 equipos + 60 préstamos): HTTP 200 | prom=16.89 ms | p95=24.84 ms | max=40.86 ms | SLA<1000ms=OK
+  - GET /rutinas/ (150 rutinas + filtro vencidas): HTTP 200 | prom=12.94 ms | p95=14.69 ms | max=15.53 ms | SLA<1000ms=OK
+  - GET /auditoria/ (200+ registros): HTTP 200 | prom=16.04 ms | p95=18.22 ms | max=20.38 ms | SLA<1000ms=OK
+
+>>> PE-04: Generación de 10 reportes PDF mensuales sobre 50 jugadores S15
+  10/10 PDFs válidos (0 fugas privadas) | prom=327.35 ms | p95=372.04 ms | max=411.46 ms | SLA<1000ms=OK
+
+>>> PE-05: Ráfaga de 100 entradas de borde, JSON corrupto y bloqueos RBAC
+  100/100 solicitudes rechazadas limpiamente (0 errores HTTP 500) | prom=1.3 ms | p95=1.62 ms | max=26.06 ms
+  Total registros de auditoría generados sin bloqueo: 225
+
+RESULTADO FINAL: PRUEBAS DE ESTRÉS Y BORDE SUPERADAS (5/5 ESCENARIOS OK)

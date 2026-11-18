@@ -86,6 +86,14 @@ Para auditar cabeceras HTTP y disponibilidad GET de solo lectura sobre el sitio 
 .\.venv\Scripts\python.exe scripts\verificar_h5.py --url https://huachipato-cdh.vercel.app
 ```
 
+### 3. Pruebas de estrés, volumen y borde (150 deportistas / 332 ops/s)
+
+```powershell
+.\.venv\Scripts\python.exe scripts\prueba_estres.py
+```
+
+---
+
 ---
 
 ## Variables de entorno (Vercel / `.env`)
@@ -123,4 +131,6 @@ Justificativos: categoría y fechas de carga o clase. Autorizaciones: categoría
 
 - [Plan de pruebas: 15 casos con resultados locales y evidencia](docs/plan-pruebas.md).
 - [Evidencia de pruebas de control de acceso (RBAC, Anti-IDOR y CSRF)](docs/pruebas-control-acceso.md).
+- [Validación de resultados, análisis de discrepancias y recomendaciones de mejora](docs/validacion-discrepancias-recomendaciones.md).
+- [Guion de exposición (12 min), pruebas en vivo del docente (5 min) y defensa técnica](docs/guion-exposicion-e3.md).
 - [Inventario de cuentas de demostración por perfil](docs/cuentas-prueba.md).
